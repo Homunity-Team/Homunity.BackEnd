@@ -1,0 +1,247 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Homunity_Project\\Homunity Web_Api\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{7F7EE845-0F4F-4B2C-AE30-E786A53F2CD5}|..\\Homunity_Buisness Logic\\Homunity_Buisness Logic.csproj|d:\\homunity_project\\homunity_buisness logic\\clsproperties.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\adminactionscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\adminactionscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7F7EE845-0F4F-4B2C-AE30-E786A53F2CD5}|..\\Homunity_Buisness Logic\\Homunity_Buisness Logic.csproj|d:\\homunity_project\\homunity_buisness logic\\homunity_buisness logic.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\propertyvideocontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\propertyvideocontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\bookingstatuscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\bookingstatuscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\bookingcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\bookingcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\locationcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\locationcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\propertiescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\propertiescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\propertyimagescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\propertyimagescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\propertyservicescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\propertyservicescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\propertystatuscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\propertystatuscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\rolescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\rolescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\servicescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\servicescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|d:\\homunity_project\\homunity web_api\\controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2F1CD582-FCF5-4CE0-A916-C456A27214DF}|Homunity Web_Api.csproj|solutionrelative:controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "clsProperties.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity_Buisness Logic\\clsProperties.cs",
+              "RelativeDocumentMoniker": "..\\Homunity_Buisness Logic\\clsProperties.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity_Buisness Logic\\clsProperties.cs",
+              "RelativeToolTip": "..\\Homunity_Buisness Logic\\clsProperties.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-24T22:02:09.383Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Homunity_Buisness Logic",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity_Buisness Logic\\Homunity_Buisness Logic.csproj",
+              "RelativeDocumentMoniker": "..\\Homunity_Buisness Logic\\Homunity_Buisness Logic.csproj",
+              "ToolTip": "D:\\Homunity_Project\\Homunity_Buisness Logic\\Homunity_Buisness Logic.csproj",
+              "RelativeToolTip": "..\\Homunity_Buisness Logic\\Homunity_Buisness Logic.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-12-24T22:01:24.859Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "PropertiesController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertiesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\PropertiesController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertiesController.cs",
+              "RelativeToolTip": "Controllers\\PropertiesController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:18:42.831Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "LocationController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\LocationController.cs",
+              "RelativeDocumentMoniker": "Controllers\\LocationController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\LocationController.cs",
+              "RelativeToolTip": "Controllers\\LocationController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:17:01.91Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "BookingController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\BookingController.cs",
+              "RelativeDocumentMoniker": "Controllers\\BookingController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\BookingController.cs",
+              "RelativeToolTip": "Controllers\\BookingController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:14:21.713Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AdminActionsController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\AdminActionsController.cs",
+              "RelativeDocumentMoniker": "Controllers\\AdminActionsController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\AdminActionsController.cs",
+              "RelativeToolTip": "Controllers\\AdminActionsController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:15:54.094Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "BookingStatusController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\BookingStatusController.cs",
+              "RelativeDocumentMoniker": "Controllers\\BookingStatusController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\BookingStatusController.cs",
+              "RelativeToolTip": "Controllers\\BookingStatusController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:29:32.236Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "PropertyVideoController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertyVideoController.cs",
+              "RelativeDocumentMoniker": "Controllers\\PropertyVideoController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertyVideoController.cs",
+              "RelativeToolTip": "Controllers\\PropertyVideoController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:24:25.953Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "PropertyImagesController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertyImagesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\PropertyImagesController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertyImagesController.cs",
+              "RelativeToolTip": "Controllers\\PropertyImagesController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:20:31.668Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "PropertyServicesController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertyServicesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\PropertyServicesController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertyServicesController.cs",
+              "RelativeToolTip": "Controllers\\PropertyServicesController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:21:49.289Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "PropertyStatusController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertyStatusController.cs",
+              "RelativeDocumentMoniker": "Controllers\\PropertyStatusController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\PropertyStatusController.cs",
+              "RelativeToolTip": "Controllers\\PropertyStatusController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:22:43.583Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "RolesController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\RolesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\RolesController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\RolesController.cs",
+              "RelativeToolTip": "Controllers\\RolesController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:08:46.848Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "ServicesController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\ServicesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\ServicesController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\ServicesController.cs",
+              "RelativeToolTip": "Controllers\\ServicesController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:25:49.515Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "UsersController.cs",
+              "DocumentMoniker": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\UsersController.cs",
+              "RelativeDocumentMoniker": "Controllers\\UsersController.cs",
+              "ToolTip": "D:\\Homunity_Project\\Homunity Web_Api\\Controllers\\UsersController.cs",
+              "RelativeToolTip": "Controllers\\UsersController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T23:26:51.836Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

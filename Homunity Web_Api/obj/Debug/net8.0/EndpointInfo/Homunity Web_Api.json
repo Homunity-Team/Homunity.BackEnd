@@ -1,0 +1,9 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Homunity Web_Api",
+    "version": "1.0"
+  },
+  "paths": { },
+  "components": { }
+}
