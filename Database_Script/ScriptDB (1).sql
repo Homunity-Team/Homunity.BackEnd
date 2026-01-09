@@ -11,9 +11,8 @@ CREATE TABLE Roles (
 GO
 
 INSERT INTO Roles ([Name]) VALUES ('Admin');
-INSERT INTO Roles ([Name]) VALUES ('User');
+INSERT INTO Roles ([Name]) VALUES ('Owner');
 INSERT INTO Roles ([Name]) VALUES ('Student');
-
 
 
 
