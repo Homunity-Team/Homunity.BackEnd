@@ -15,4 +15,8 @@
     <ProjectReference Include="..\Homunity_Buisness Logic\Homunity_Buisness Logic.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>
