@@ -73,12 +73,12 @@ namespace Homunity_Buisness_Logic
 
             bool found = clsUsersData.GetUserByID(
                 userId,
-                ref firstName,
-                ref lastName,
-                ref phone,
-                ref passwordHash,
-                ref roleId,
-                ref isActive
+               firstName,
+               lastName,
+               phone,
+               passwordHash,
+               roleId,
+               isActive
             );
 
             if (!found)
@@ -133,12 +133,12 @@ namespace Homunity_Buisness_Logic
 
             bool found = clsUsersData.GetUserByPhone(
                 phone,
-                ref id,
-                ref firstName,
-                ref lastName,
-                ref passwordHash,
-                ref roleId,
-                ref isActive
+                  id,
+                  firstName,
+                  lastName,
+                  passwordHash,
+                  roleId,
+                  isActive
             );
 
             if (!found)

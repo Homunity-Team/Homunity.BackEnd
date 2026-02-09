@@ -2,7 +2,6 @@
 using Homunity_Data_Access;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using static Homunity_Buisness_Logic.clsUsers;
 
 namespace Homunity_Web_Api.Controllers
 {
@@ -49,6 +48,8 @@ namespace Homunity_Web_Api.Controllers
 
 
 
+
+
         // ================= Login =================
         [HttpPost("Login", Name = "Login User")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -75,6 +76,44 @@ namespace Homunity_Web_Api.Controllers
 
 
 
+
+
+        // ================= Update Status =================
+        [HttpPut("Update Status By ID", Name = "Update Status")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult UpdateStatus(int id, bool isActive)
+        {
+            bool updated = clsUsersData.UpdateUserStatus(id, isActive);
+
+            if (!updated)
+                return NotFound(new { message = "User not found" });
+
+            return Ok(new { message = "User status updated successfully" });
+        }
+
+
+
+
+
+        // ================= Delete User =================
+        [HttpDelete("Delete User By ID", Name = "Delete User")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult Delete(int id)
+        {
+            bool deleted = clsUsersData.DeleteUser(id);
+
+            if (!deleted)
+                return NotFound(new { message = "User not found" });
+
+            return Ok(new { message = "User deleted successfully" });
+        }
+
+
+
+
+
         // ================= Get Profile User =================
         [HttpGet("Get Profile By ID", Name = "Get Profile By ID")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -97,38 +136,5 @@ namespace Homunity_Web_Api.Controllers
             });
         }
 
-
-
-
-        // ================= Update Status =================
-        [HttpPut("Update Status By ID", Name = "Update Status")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult UpdateStatus(int id, bool isActive)
-        {
-            bool updated = clsUsersData.UpdateUserStatus(id, isActive);
-
-            if (!updated)
-                return NotFound(new { message = "User not found" });
-
-            return Ok(new { message = "User status updated successfully" });
-        }
-
-
-
-
-        // ================= Delete User =================
-        [HttpDelete("Delete User By ID", Name = "Delete User")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult Delete(int id)
-        {
-            bool deleted = clsUsersData.DeleteUser(id);
-
-            if (!deleted)
-                return NotFound(new { message = "User not found" });
-
-            return Ok(new { message = "User deleted successfully" });
-        }
     }
 }

@@ -14,10 +14,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("FrontendPolicy", policy =>
     {
         policy
-            .WithOrigins(
-                "https://homunity.com",          // الدومين الحقيقي
-                "https://www.homunity.com"       // لو فيه www
-            )
+            .AllowAnyOrigin()    // 👈 مفتوح لأي Frontend
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -37,7 +34,8 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Homunity API v1");
-    //  c.RoutePrefix = string.Empty; // <-- ?? ?????
+   
+    c.RoutePrefix = string.Empty; // <-- ?? ?????
 });
 
 
@@ -54,6 +52,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-
- 

@@ -7,8 +7,8 @@ namespace Homunity_Data_Access
     public class clsUsersData
     {
         // Get User By ID
-        public static bool GetUserByID(int UserID, ref string FirstName, ref string LastName,
-                      ref string Phone, ref string PasswordHash, ref int RoleID, ref bool IsActive)
+        public static bool GetUserByID(int UserID, string FirstName, string LastName,
+                        string Phone, string PasswordHash, int RoleID, bool IsActive)
         {
             bool isFound = false;
 
@@ -53,8 +53,8 @@ namespace Homunity_Data_Access
 
 
         // Get User By Phone
-        public static bool GetUserByPhone(string Phone,ref int UserID, ref string FirstName, ref string LastName,
-                      ref string PasswordHash, ref int RoleID, ref bool IsActive)
+        public static bool GetUserByPhone(string Phone, int UserID, string FirstName, string LastName,
+                      string PasswordHash, int RoleID, bool IsActive)
         {
             bool isFound = false;
 
@@ -100,7 +100,7 @@ namespace Homunity_Data_Access
 
 
         // Add New User
-        public static int AddNewUser(string FirstName,string LastName, string Phone, string PasswordHash,int RoleID, bool IsActive)
+        public static int AddNewUser(string FirstName, string LastName, string Phone, string PasswordHash, int RoleID, bool IsActive)
         {
             int UserID = -1;
 
