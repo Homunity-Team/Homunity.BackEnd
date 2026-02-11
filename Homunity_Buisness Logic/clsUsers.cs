@@ -71,15 +71,8 @@ namespace Homunity_Buisness_Logic
             int roleId = -1;
             bool isActive = false;
 
-            bool found = clsUsersData.GetUserByID(
-                userId,
-               firstName,
-               lastName,
-               phone,
-               passwordHash,
-               roleId,
-               isActive
-            );
+            bool found = clsUsersData.GetUserByID(userId, out firstName, out lastName,
+            out phone, out passwordHash, out roleId, out isActive);
 
             if (!found)
                 return null;

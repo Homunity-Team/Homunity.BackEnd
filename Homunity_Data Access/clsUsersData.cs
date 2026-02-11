@@ -7,11 +7,18 @@ namespace Homunity_Data_Access
     public class clsUsersData
     {
         // Get User By ID
-        public static bool GetUserByID(int UserID, string FirstName, string LastName,
-                        string Phone, string PasswordHash, int RoleID, bool IsActive)
+        public static bool GetUserByID(int UserID,out string FirstName,out string LastName,
+                                out string Phone,out string PasswordHash, out int RoleID, out bool IsActive)
         {
-            bool isFound = false;
+            // تعيين قيم افتراضية
+            FirstName = "";
+            LastName = "";
+            Phone = "";
+            PasswordHash = "";
+            RoleID = -1;
+            IsActive = false;
 
+            bool isFound = false;
             try
             {
                 using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
@@ -50,6 +57,7 @@ namespace Homunity_Data_Access
 
             return isFound;
         }
+
 
 
         // Get User By Phone
@@ -97,6 +105,7 @@ namespace Homunity_Data_Access
 
             return isFound;
         }
+
 
 
         // Add New User
@@ -214,6 +223,7 @@ namespace Homunity_Data_Access
 
             return rowsAffected > 0;
         }
+
 
 
         // Delete User Status

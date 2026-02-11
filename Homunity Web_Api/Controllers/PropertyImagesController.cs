@@ -31,65 +31,57 @@ namespace Homunity_Web_Api.Controllers
         {
             try
             {
-                // 1. Basic validation في Controller
                 if (file == null || file.Length == 0)
                     return BadRequest(new { message = "No file uploaded" });
 
                 if (propertyId <= 0)
                     return BadRequest(new { message = "Invalid property ID" });
 
-                // 2. File type validation
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
                 var extension = Path.GetExtension(file.FileName).ToLower();
 
                 if (!allowedExtensions.Contains(extension))
                     return BadRequest(new { message = "Invalid file type" });
 
-                // 3. File size validation
                 const long maxSize = 2 * 1024 * 1024;
                 if (file.Length > maxSize)
                     return BadRequest(new { message = "File too large (max 2MB)" });
 
-                // 4. Create upload folder
-                var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "properties");
+                // 🔴 التعديل هنا
+                string rootPath = _environment.WebRootPath
+                                  ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+
+                var uploadsFolder = Path.Combine(rootPath, "image", "uploads", "properties");
+
                 if (!Directory.Exists(uploadsFolder))
                     Directory.CreateDirectory(uploadsFolder);
 
-                // 5. Generate unique filename
                 var fileName = $"prop_{propertyId}_{DateTime.Now:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
-                var relativePath = $"uploads/properties/{fileName}";
-                var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
+                var relativePath = $"image/uploads/properties/{fileName}";
+                var fullPath = Path.Combine(rootPath, relativePath);
 
-                // 6. Save file
                 using (var stream = new FileStream(fullPath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
-                // 7. Create business object - هنا بيتصل بالبيزنس لوجيك
                 var image = new clsPropertyImages
                 {
                     PropertyId = propertyId,
-                    ImagePath = relativePath, // تخزين المسار النسبي
+                    ImagePath = relativePath,
                     Mode = clsPropertyImages.enMode.AddNew
                 };
 
-                // 8. Save to database - التحقق من Business Rules هنا
                 bool saveResult = image.Save(file.Length);
 
                 if (!saveResult)
                 {
-                    // Delete file if save failed
                     if (System.IO.File.Exists(fullPath))
                         System.IO.File.Delete(fullPath);
 
-                    return BadRequest(new
-                    {
-                        message = "Failed to save image. Check if property exists or max images reached (6 per property)"
-                    });
+                    return BadRequest(new { message = "Failed to save image" });
                 }
 
-                // 9. Return success
                 var imageUrl = $"{Request.Scheme}://{Request.Host}/{relativePath}";
 
                 return CreatedAtAction(nameof(GetImageById), new { id = image.ImageId }, new
@@ -97,8 +89,6 @@ namespace Homunity_Web_Api.Controllers
                     imageId = image.ImageId,
                     propertyId = image.PropertyId,
                     imageUrl = imageUrl,
-                    fileSize = file.Length,
-                    createdAt = DateTime.UtcNow,
                     message = "Image uploaded successfully"
                 });
             }
@@ -107,7 +97,6 @@ namespace Homunity_Web_Api.Controllers
                 return StatusCode(500, new { message = "Server error", error = ex.Message });
             }
         }
-
 
 
 
