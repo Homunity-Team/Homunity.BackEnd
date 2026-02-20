@@ -261,6 +261,36 @@ namespace Homunity_Data_Access
 
             return dt;
         }
+
+        // ================= Check if Property Exists =================
+        public static bool IsPropertyExist(int PropertyID)
+        {
+            bool isFound = false;
+
+            try
+            {
+                using (var connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
+                {
+                    string query = "SELECT 1 FROM Properties WHERE PropertyId = @PropertyID";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                  command.Parameters.AddWithValue("@PropertyID", PropertyID);
+                        connection.Open();
+
+                        object result = command.ExecuteScalar();
+                        isFound = (result != null);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error checking property existence: " + ex.Message);
+            }
+
+            return isFound;
+        }
+
     }
 }
 
