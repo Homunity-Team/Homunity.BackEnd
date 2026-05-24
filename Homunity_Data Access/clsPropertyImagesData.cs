@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,88 @@ namespace Homunity_Data_Access
 {
     public class clsPropertyImagesData
     {
+       
+        // ================= ADD NEW IMAGE ===================
+        public static int AddImage(int PropertyID, string ImagePath,SqlConnection connection, SqlTransaction transaction)
+        {
+            try
+            {
+                string query = @"INSERT INTO PropertyImages(PropertyId, ImagePath, CreatedAt)
+                         OUTPUT INSERTED.ImageId
+                         VALUES(@PropertyID, @ImagePath, GETDATE())";
+
+                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
+                {
+                    cmd.Parameters.AddWithValue("@PropertyID", PropertyID);
+                    cmd.Parameters.AddWithValue("@ImagePath", ImagePath);
+
+                    object result = cmd.ExecuteScalar();
+                    return result != null ? Convert.ToInt32(result) : -1;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error adding image: {ex.Message}");
+                return -1;
+            }
+        }
+ 
+      
+        // ================= UPDATE IMAGE ===================
+        public static bool UpdateImage(int ImageId, string ImagePath)
+        {
+            int rowsAffected = 0;
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
+                {
+                    string query = @"UPDATE PropertyImages
+                                     SET ImagePath = @ImagePath
+                                     WHERE ImageId = @ImageId";
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@ImageId", ImageId);
+                        command.Parameters.AddWithValue("@ImagePath", ImagePath);
+
+                        connection.Open();
+                        rowsAffected = command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating image: {ex.Message}");
+            }
+
+            return rowsAffected > 0;
+        }
+
+
+        public static bool Delete(int imageId, int propertyId,SqlConnection connection, SqlTransaction transaction)
+        {
+            try
+            {
+                string query = @"DELETE FROM PropertyImages 
+                         WHERE ImageId = @ImageId AND PropertyId = @PropertyId";
+
+                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
+                {
+                    cmd.Parameters.AddWithValue("@ImageId", imageId);
+                    cmd.Parameters.AddWithValue("@PropertyId", propertyId);
+                    int rows = cmd.ExecuteNonQuery();
+                    return rows > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting image: {ex.Message}");
+                return false;
+            }
+        }
+
+
         // ================= Get Image ByI D ===============
         public static bool GetImageByID(int ImageId, ref int PropertyId, ref string ImagePath, ref DateTime CreatedAt)
         {
@@ -49,6 +132,7 @@ namespace Homunity_Data_Access
         }
 
 
+
         // ================= GET IMAGES COUNT ==============
         public static int GetImagesCountByPropertyID(int propertyId)
         {
@@ -78,97 +162,39 @@ namespace Homunity_Data_Access
             return count;
         }
 
-        // ================= ADD NEW IMAGE ===================
-        public static int AddNewImage(int PropertyId, string ImagePath)
+
+        // Method جديدة بنفس الـ Pattern الموجود في الكلاس
+        public static DataTable GetImagesByPropertyID(int propertyId)
         {
-            int ImageId = -1;
+            DataTable dt = new DataTable();
 
             try
             {
                 using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
                 {
-                    string query = @"INSERT INTO PropertyImages
-                                     (PropertyId, ImagePath, CreatedAt)
-                                     OUTPUT INSERTED.ImageId
-                                     VALUES(@PropertyId, @ImagePath, GETDATE())";
+                    string query = @"SELECT ImageId, PropertyId, ImagePath, CreatedAt
+                             FROM PropertyImages
+                             WHERE PropertyId = @PropertyId
+                             ORDER BY CreatedAt ASC";
 
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("@PropertyId", PropertyId);
-                        command.Parameters.AddWithValue("@ImagePath", ImagePath);
-
+                        command.Parameters.AddWithValue("@PropertyId", propertyId);
                         connection.Open();
-                        object result = command.ExecuteScalar();
-                        if (result != null)
-                            ImageId = Convert.ToInt32(result);
+
+                        using (SqlDataReader reader = command.ExecuteReader())
+                            dt.Load(reader);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error adding image: {ex.Message}");
+                Console.WriteLine($"Error getting images by property: {ex.Message}");
             }
 
-            return ImageId;
+            return dt;
         }
 
-        // ================= UPDATE IMAGE ===================
-        public static bool UpdateImage(int ImageId, string ImagePath)
-        {
-            int rowsAffected = 0;
 
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"UPDATE PropertyImages
-                                     SET ImagePath = @ImagePath
-                                     WHERE ImageId = @ImageId";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@ImageId", ImageId);
-                        command.Parameters.AddWithValue("@ImagePath", ImagePath);
-
-                        connection.Open();
-                        rowsAffected = command.ExecuteNonQuery();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating image: {ex.Message}");
-            }
-
-            return rowsAffected > 0;
-        }
-
-        // ================= DELETE IMAGE ==================
-        public static bool DeleteImage(int ImageId)
-        {
-            int rowsAffected = 0;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"DELETE FROM PropertyImages
-                                     WHERE ImageId = @ImageId";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@ImageId", ImageId);
-                        connection.Open();
-                        rowsAffected = command.ExecuteNonQuery();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error deleting image: {ex.Message}");
-            }
-
-            return rowsAffected > 0;
-        }
     }
 }

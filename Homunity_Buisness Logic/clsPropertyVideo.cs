@@ -1,4 +1,5 @@
 ﻿using Homunity_Data_Access;
+using Microsoft.Data.SqlClient;
 using System.Text.Json.Serialization;
 
 namespace Homunity_Buisness_Logic
@@ -39,64 +40,48 @@ namespace Homunity_Buisness_Logic
         // ================= VALIDATION =================
         private bool Validate(long fileSizeBytes)
         {
-            // 1. تحقق من PropertyId
             if (PropertyId <= 0)
                 return false;
 
-            // 2. تحقق من وجود مسار الفيديو
             if (string.IsNullOrWhiteSpace(VideoPath))
                 return false;
 
-            // 3. تحقق من امتداد الملف
             string extension = Path.GetExtension(VideoPath).ToLower();
             if (string.IsNullOrEmpty(extension))
-            {
-                // إذا المسار مش واضح، نحاول من الاسم
                 extension = Path.GetExtension(VideoPath.Split('/').Last()).ToLower();
-            }
 
             if (!AllowedVideoExtensions.Contains(extension))
                 return false;
 
-            // 4. تحقق من حجم الملف
-            long maxSizeBytes = MAX_VIDEO_SIZE_MB * 1024 * 1024;
-            if (fileSizeBytes <= 0 || fileSizeBytes > maxSizeBytes)
-                return false;
-
-
-
-            // 5. تحقق من وجود فيديو آخر للعقار (فقط عند الإضافة)
-            if (Mode == enMode.AddNew)
+            // ✅ لو fileSizeBytes = 0 يعني مش موجود — بيعدي
+            // لو موجود يتحقق من الحجم
+            if (fileSizeBytes > 0)
             {
-                // تحقق إذا العقار عنده فيديو بالفعل
-                var existingVideo = GetVideoByPropertyID(PropertyId);
-                if (existingVideo != null)
-                    return false; // العقار عنده فيديو بالفعل
+                long maxSizeBytes = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+                if (fileSizeBytes > maxSizeBytes)
+                    return false;
             }
 
             return true;
         }
 
-
-
         // ================= ADD NEW VIDEO =================
-        private bool AddNewVideo(long fileSizeBytes)
+        private bool AddNewVideo(long fileSizeBytes, int propertyId, string videoPath,SqlConnection connection, SqlTransaction transaction)
         {
-            // Validate قبل الإضافة
+            // نحط القيم في الـ Object عشان Validate تشتغل صح
+            this.PropertyId = propertyId;
+            this.VideoPath = videoPath;
+
             if (!Validate(fileSizeBytes))
                 return false;
 
-            // Add to database
-            int newId = clsPropertyVideoData.AddNewVideo(PropertyId, VideoPath);
-            if (newId == -1)
+            bool added = clsPropertyVideoData.AddVideo(propertyId, videoPath, connection, transaction);
+            if (!added)
                 return false;
 
-            // Update properties
-            VideoId = newId;
             Mode = enMode.Update;
             return true;
         }
-
 
 
         // ================= UPDATE VIDEO =================
@@ -111,44 +96,15 @@ namespace Homunity_Buisness_Logic
         }
 
 
-
-        // ================= Save (Add/Update) =================
-        public bool Save(long fileSizeBytes = 0)
+        // ================= Delete By Property ID =================
+        public static bool DeleteByPropertyID(int propertyId,SqlConnection connection, SqlTransaction transaction)
         {
-            try
-            {
-                switch (Mode)
-                {
-                    case enMode.AddNew:
-                        return AddNewVideo(fileSizeBytes);
-
-                    case enMode.Update:
-                        return UpdateVideo(fileSizeBytes);
-
-                    default:
-                        return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error saving video: {ex.Message}");
-                return false;
-            }
-        }
-
-
-
-        // ================= DELETE =================
-        public static bool Delete(int videoId)
-        {
-            if (videoId <= 0)
+            if (propertyId <= 0)
                 return false;
 
-            return clsPropertyVideoData.DeleteVideo(videoId);
+            return clsPropertyVideoData.DeleteByPropertyID(propertyId, connection, transaction);
         }
-
-
-
+ 
 
         // ================= FIND BY ID =================
         public static clsPropertyVideo FindByID(int videoId)
@@ -179,7 +135,6 @@ namespace Homunity_Buisness_Logic
 
 
 
-
         // ================= GET Video BY PROPERTY =================
         public static clsPropertyVideo GetVideoByPropertyID(int propertyId)
         {
@@ -205,6 +160,34 @@ namespace Homunity_Buisness_Logic
                 Mode = enMode.Update
             };
         }
+
+
+        // ================= Save (Add/Update) =================
+        public bool Save(SqlConnection connection, SqlTransaction transaction,
+                         long fileSizeBytes = 0, int propertyId = 0, string videoPath = "")
+        {
+            try
+            {
+                switch (Mode)
+                {
+                    case enMode.AddNew:
+                        return AddNewVideo(fileSizeBytes, propertyId, videoPath, connection, transaction);
+
+                    case enMode.Update:
+                        return UpdateVideo(fileSizeBytes);
+
+                    default:
+                        return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving video: {ex.Message}");
+                return false;
+            }
+        }
+
+
 
 
     }

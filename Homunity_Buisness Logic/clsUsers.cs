@@ -119,19 +119,20 @@ namespace Homunity_Buisness_Logic
         {
             int id = -1;
             int roleId = -1;
-            string firstName = "";
-            string lastName = "";
-            string passwordHash = "";
+            string firstName = string.Empty;
+            string lastName = string.Empty;
+            string passwordHash = string.Empty;
             bool isActive = false;
 
+            // ✅ أضفنا out
             bool found = clsUsersData.GetUserByPhone(
                 phone,
-                  id,
-                  firstName,
-                  lastName,
-                  passwordHash,
-                  roleId,
-                  isActive
+                out id,
+                out firstName,
+                out lastName,
+                out passwordHash,
+                out roleId,
+                out isActive
             );
 
             if (!found)
@@ -144,18 +145,17 @@ namespace Homunity_Buisness_Logic
             if (inputHash != passwordHash)
                 return null;
 
-            clsUsers user = new clsUsers();
-            user.UserID = id;
-            user.FirstName = firstName;
-            user.LastName = lastName;
-            user.Phone = phone;
-            user.RoleId = roleId;
-            user.IsActive = isActive;
-            user.Mode = enMode.Update;
-
-            return user;
+            return new clsUsers
+            {
+                UserID = id,
+                FirstName = firstName,
+                LastName = lastName,
+                Phone = phone,
+                RoleId = roleId,
+                IsActive = isActive,
+                Mode = enMode.Update
+            };
         }
-
         // ================= Helpers =================
 
         private bool ValidateData()

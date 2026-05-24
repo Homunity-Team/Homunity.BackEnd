@@ -15,13 +15,9 @@ namespace Homunity_Web_Api.Controllers
         [HttpPost]
         public IActionResult CreateBooking(int PropertyId, int StudentId)
         {
-            if (PropertyId <= 0)
-                return BadRequest(new { message = "Invalid PropertyId" });
+            if (PropertyId <= 0) return BadRequest(new { message = "Invalid PropertyId" });
+            if (StudentId <= 0) return BadRequest(new { message = "Invalid StudentId" });
 
-            if (StudentId <= 0)
-                return BadRequest(new { message = "Invalid StudentId" });
-
-            // StatusId = 2 (InProcess) دايمًا عند الإنشاء - مش المفروض يجي من الـ Request
             clsBooking booking = new clsBooking
             {
                 PropertyId = PropertyId,
@@ -45,14 +41,8 @@ namespace Homunity_Web_Api.Controllers
                     });
             }
 
-            return StatusCode(500, new
-            {
-                message = "Error creating booking. Property may already be booked, " +
-                          "you may have already requested this property, " +
-                          "or you are not a valid student."
-            });
+            return StatusCode(500, new { message = "Error creating booking." });
         }
-
 
 
 
@@ -63,23 +53,28 @@ namespace Homunity_Web_Api.Controllers
         [HttpGet("{id}")]
         public IActionResult GetBookingById(int id)
         {
-            if (id <= 0)
-                return BadRequest(new { message = "Invalid BookingId" });
+            if (id <= 0) return BadRequest(new { message = "Invalid BookingId" });
 
             clsBooking booking = clsBooking.Find(id);
+            if (booking == null) return NotFound(new { message = $"Booking {id} not found" });
 
-            if (booking == null)
-                return NotFound(new { message = $"Booking with ID {id} not found" });
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
             return Ok(new
             {
                 bookingId = booking.BookingId,
-                propertyId = booking.PropertyId,
-                studentId = booking.StudentId,
                 statusId = booking.StatusId,
                 statusName = booking.BookingStatusInfo?.StatusName,
                 createdAt = booking.CreatedAt,
-                confirmedAt = booking.ConfirmedAt
+                confirmedAt = booking.ConfirmedAt,
+                property = new
+                {
+                    propertyId = booking.PropertyId,
+                    title = booking.PropertyTitle,
+                    price = booking.PropertyPrice,
+                    address = booking.PropertyAddress,  // ✅ بدل location
+                    imageUrl = booking.PropertyImagePath == null ? null : $"{baseUrl}/{booking.PropertyImagePath}"
+                }
             });
         }
 
@@ -91,16 +86,34 @@ namespace Homunity_Web_Api.Controllers
         [HttpGet("student/{studentId}")]
         public IActionResult GetBookingsByStudent(int studentId)
         {
-            if (studentId <= 0)
-                return BadRequest(new { message = "Invalid StudentId" });
+            if (studentId <= 0) return BadRequest(new { message = "Invalid StudentId" });
 
             DataTable bookings = clsBooking.GetBookingsByStudentID(studentId);
-
             if (bookings.Rows.Count == 0)
-                return NotFound(new { message = $"No bookings found for student {studentId}" });
+                return NotFound(new { message = $"No bookings for student {studentId}" });
 
-            return Ok(_ConvertDataTableToList(bookings));
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
+            var result = bookings.AsEnumerable().Select(row => new
+            {
+                bookingId = Convert.ToInt32(row["BookingId"]),
+                statusId = Convert.ToInt32(row["StatusId"]),
+                statusName = row["StatusName"].ToString(),
+                createdAt = Convert.ToDateTime(row["CreatedAt"]),
+                confirmedAt = row["ConfirmedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(row["ConfirmedAt"]),
+                property = new
+                {
+                    propertyId = Convert.ToInt32(row["PropertyId"]),
+                    title = row["PropertyTitle"].ToString(),
+                    price = Convert.ToDecimal(row["Price"]),
+                    address = row["PropertyAddress"].ToString(),   // ✅ بدل location
+                    imageUrl = row["ImagePath"] == DBNull.Value ? null : $"{baseUrl}/{row["ImagePath"]}"
+                }
+            }).ToList();
+
+            return Ok(result);
         }
+
 
         // =============================================
         // GET: api/Booking/owner/{ownerId}
@@ -108,37 +121,69 @@ namespace Homunity_Web_Api.Controllers
         [HttpGet("owner/{ownerId}")]
         public IActionResult GetBookingsByOwner(int ownerId)
         {
-            if (ownerId <= 0)
-                return BadRequest(new { message = "Invalid OwnerId" });
+            if (ownerId <= 0) return BadRequest(new { message = "Invalid OwnerId" });
 
             DataTable bookings = clsBooking.GetBookingsByOwnerID(ownerId);
-
             if (bookings.Rows.Count == 0)
-                return NotFound(new { message = $"No bookings found for owner {ownerId}" });
+                return NotFound(new { message = $"No bookings for owner {ownerId}" });
 
-            return Ok(_ConvertDataTableToList(bookings));
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
+            var result = bookings.AsEnumerable().Select(row => new
+            {
+                bookingId = Convert.ToInt32(row["BookingId"]),
+                studentName = row["StudentName"].ToString(),
+                statusId = Convert.ToInt32(row["StatusId"]),
+                statusName = row["StatusName"].ToString(),
+                createdAt = Convert.ToDateTime(row["CreatedAt"]),
+                confirmedAt = row["ConfirmedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(row["ConfirmedAt"]),
+                property = new
+                {
+                    propertyId = Convert.ToInt32(row["PropertyId"]),
+                    title = row["PropertyTitle"].ToString(),
+                    address = row["PropertyAddress"].ToString(),   // ✅ بدل location
+                    imageUrl = row["ImagePath"] == DBNull.Value ? null : $"{baseUrl}/{row["ImagePath"]}"
+                }
+            }).ToList();
+
+            return Ok(new
+            {
+                message = "Bookings retrieved successfully",
+                count = result.Count,
+                bookings = result
+            });
         }
 
+
+
         // =============================================
-        // Helper: Convert DataTable → List of Dictionaries
+        // GET: api/Booking/property/{propertyId}
         // =============================================
-        private List<Dictionary<string, object>> _ConvertDataTableToList(DataTable dt)
+        [HttpGet("property/{propertyId}")]
+        public IActionResult GetBookingsByProperty(int propertyId)
         {
-            var result = new List<Dictionary<string, object>>();
+            if (propertyId <= 0) return BadRequest(new { message = "Invalid PropertyId" });
 
-            foreach (DataRow row in dt.Rows)
+            DataTable bookings = clsBooking.GetBookingsByPropertyID(propertyId);
+
+            if (bookings.Rows.Count == 0)
+                return Ok(new { message = "No bookings found", bookings = new List<object>() });
+
+            var result = bookings.AsEnumerable().Select(row => new
             {
-                var dict = new Dictionary<string, object>();
+                bookingId = Convert.ToInt32(row["BookingId"]),
+                studentName = row["StudentName"].ToString(),
+                checkInDate = row["CreatedAt"] != DBNull.Value
+                              ? Convert.ToDateTime(row["CreatedAt"]).ToString("yyyy-MM-dd") : null,
+                statusName = row["StatusName"].ToString()
+            }).ToList();
 
-                foreach (DataColumn col in dt.Columns)
-                {
-                    dict[col.ColumnName] = row[col] == DBNull.Value ? null : row[col];
-                }
-
-                result.Add(dict);
-            }
-
-            return result;
+            return Ok(new
+            {
+                message = "Bookings retrieved successfully",
+                count = result.Count,
+                bookings = result
+            });
         }
 
 
@@ -152,16 +197,11 @@ namespace Homunity_Web_Api.Controllers
         [HttpPut("{id}/confirm")]
         public IActionResult ConfirmBooking(int id, int OwnerId)
         {
-            if (id <= 0)
-                return BadRequest(new { message = "Invalid BookingId" });
-
-            if (OwnerId <= 0)
-                return BadRequest(new { message = "Invalid OwnerId" });
+            if (id <= 0) return BadRequest(new { message = "Invalid BookingId" });
+            if (OwnerId <= 0) return BadRequest(new { message = "Invalid OwnerId" });
 
             clsBooking booking = clsBooking.Find(id);
-
-            if (booking == null)
-                return NotFound(new { message = $"Booking with ID {id} not found" });
+            if (booking == null) return NotFound(new { message = $"Booking {id} not found" });
 
             if (booking.Confirm(OwnerId))
             {
@@ -170,16 +210,11 @@ namespace Homunity_Web_Api.Controllers
                     bookingId = booking.BookingId,
                     statusId = booking.StatusId,
                     confirmedAt = booking.ConfirmedAt,
-                    message = "Booking confirmed successfully. All other bookings for this property have been cancelled."
+                    message = "Booking confirmed successfully."
                 });
             }
 
-            return StatusCode(500, new
-            {
-                message = "Error confirming booking. " +
-                          "Booking may already be confirmed, you may not be the owner, " +
-                          "or booking is not in InProcess state."
-            });
+            return StatusCode(500, new { message = "Error confirming booking." });
         }
 
 
@@ -192,13 +227,10 @@ namespace Homunity_Web_Api.Controllers
         [HttpPut("{id}/cancel")]
         public IActionResult CancelBooking(int id)
         {
-            if (id <= 0)
-                return BadRequest(new { message = "Invalid BookingId" });
+            if (id <= 0) return BadRequest(new { message = "Invalid BookingId" });
 
             clsBooking booking = clsBooking.Find(id);
-
-            if (booking == null)
-                return NotFound(new { message = $"Booking with ID {id} not found" });
+            if (booking == null) return NotFound(new { message = $"Booking {id} not found" });
 
             if (booking.Cancel())
             {
@@ -210,10 +242,7 @@ namespace Homunity_Web_Api.Controllers
                 });
             }
 
-            return StatusCode(500, new
-            {
-                message = "Error cancelling booking. Cannot cancel a confirmed or already cancelled booking."
-            });
+            return StatusCode(500, new { message = "Cannot cancel a confirmed or already cancelled booking." });
         }
 
 
@@ -226,10 +255,10 @@ namespace Homunity_Web_Api.Controllers
         [HttpDelete("{id}")]
         public IActionResult DeleteBooking(int id)
         {
-            return BadRequest(new
-            {
-                message = "Booking deletion is not supported. Use PUT /api/Booking/{id}/cancel instead."
-            });
+            return BadRequest(new { message = "Use PUT /api/Booking/{id}/cancel instead." });
         }
+
+
+       
     }
 }

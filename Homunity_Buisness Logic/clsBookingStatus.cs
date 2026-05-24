@@ -33,15 +33,7 @@ namespace Homunity_Business_Logic
             return null;
         }
 
-        public static clsBookingStatus FindByName(string StatusName)
-        {
-            int BookingStatusId = -1;
-
-            if (clsBookingStatusData.GetBookingStatusByName(StatusName, ref BookingStatusId))
-                return new clsBookingStatus(BookingStatusId, StatusName);
-
-            return null;
-        }
+         
 
         // =============================================
         // GET ALL - للـ Dropdowns والـ Reference
@@ -49,11 +41,7 @@ namespace Homunity_Business_Logic
         public static DataTable GetAllBookingStatuses()
             => clsBookingStatusData.GetAllBookingStatuses();
 
-        // =============================================
-        // VALIDATION
-        // =============================================
-        public static bool IsBookingStatusExist(int BookingStatusId)
-            => clsBookingStatusData.IsBookingStatusExist(BookingStatusId);
+        
 
      }
 }

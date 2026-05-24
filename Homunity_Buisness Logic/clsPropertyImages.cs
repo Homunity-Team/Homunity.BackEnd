@@ -1,12 +1,16 @@
 ﻿
 using Homunity_Data_Access;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace Homunity_Buisness_Logic
 {
@@ -17,15 +21,14 @@ namespace Homunity_Buisness_Logic
         [JsonIgnore]
         public enMode Mode { get; set; } = enMode.AddNew;
 
-        public int ImageId { get; private set; }
+        public int ImageId { get;  set; }
         public int PropertyId { get; set; }
         public string ImagePath { get; set; }
-        public DateTime CreatedAt { get; private set; }
+        public DateTime CreatedAt { get;  set; }
 
         // Business Rules
         private const int MAX_IMAGES = 6;
-        private const long MAX_IMAGE_SIZE_MB = 2;
-
+        private const long MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
         private static readonly string[] AllowedExtensions =
         {
             ".jpg", ".jpeg", ".png", ".webp"
@@ -64,29 +67,26 @@ namespace Homunity_Buisness_Logic
                 return false;
 
             // 4. تحقق من حجم الملف
-            long maxSizeBytes = MAX_IMAGE_SIZE_MB * 1024 * 1024;
-            if (fileSizeBytes <= 0 || fileSizeBytes > maxSizeBytes)
+            long maxSizeBytes = MAX_IMAGE_SIZE_BYTES * 1024 * 1024;
+            if (fileSizeBytes <= 0 || fileSizeBytes > MAX_IMAGE_SIZE_BYTES)
                 return false;
-
-            // 5. تحقق من عدد الصور (فقط عند الإضافة)
-            if (Mode == enMode.AddNew)
-            {
-                int currentCount = GetImagesCount(PropertyId);
-                if (currentCount >= MAX_IMAGES)
-                    return false;
-            }
-
+ 
             return true;
         }
 
+        
         // ================= ADD NEW IMAGE =================
-        private bool AddNewImage(long fileSizeBytes)
+        private bool _AddNewImage(long fileSizeBytes, int propertyId, string imagePath,
+            SqlConnection connection, SqlTransaction transaction)
         {
-            // Validate قبل الإضافة
+            // ✅ صح
+            this.PropertyId = propertyId;
+            this.ImagePath = imagePath;
+
             if (!Validate(fileSizeBytes))
                 return false;
 
-            int newId = clsPropertyImagesData.AddNewImage(PropertyId, ImagePath);
+            int newId = clsPropertyImagesData.AddImage(propertyId, imagePath, connection, transaction);
             if (newId == -1)
                 return false;
 
@@ -94,9 +94,10 @@ namespace Homunity_Buisness_Logic
             Mode = enMode.Update;
             return true;
         }
-
+        
+        
         // ================= UPDATE IMAGE =================
-        private bool UpdateImage(long fileSizeBytes)
+        private bool _UpdateImage(long fileSizeBytes)
         {
             // Validate قبل التحديث
             if (!Validate(fileSizeBytes))
@@ -106,18 +107,19 @@ namespace Homunity_Buisness_Logic
             return clsPropertyImagesData.UpdateImage(ImageId, ImagePath);
         }
 
+
         // ================= Save (Add/Update) =================
-        public bool Save(long fileSizeBytes = 0)
+        public bool Save(SqlConnection connection, SqlTransaction transaction, long fileSizeBytes = 0, int propertyId = 0, string imagePath = "")
         {
             try
             {
-                switch (Mode)
+                switch (Mode) 
                 {
                     case enMode.AddNew:
-                        return AddNewImage(fileSizeBytes);
+                        return _AddNewImage(fileSizeBytes, propertyId, imagePath,  connection, transaction);
 
                     case enMode.Update:
-                        return UpdateImage(fileSizeBytes);
+                        return _UpdateImage(fileSizeBytes);
 
                     default:
                         return false;
@@ -129,16 +131,8 @@ namespace Homunity_Buisness_Logic
                 return false;
             }
         }
-
-        // ================= DELETE =================
-        public static bool Delete(int imageId)
-        {
-            if (imageId <= 0)
-                return false;
-
-            return clsPropertyImagesData.DeleteImage(imageId);
-        }
-
+ 
+        
         // ================= FIND BY ID =================
         public static clsPropertyImages FindByImageID(int imageId)
         {
@@ -166,6 +160,9 @@ namespace Homunity_Buisness_Logic
             };
         }
 
+       
+
+
         // ================= GET IMAGES COUNT =================
         public static int GetImagesCount(int propertyId)
         {
@@ -174,6 +171,55 @@ namespace Homunity_Buisness_Logic
 
             return clsPropertyImagesData.GetImagesCountByPropertyID(propertyId);
         }
+
+
+
+        public static List<clsPropertyImages> GetImagesByPropertyID(int propertyId)
+        {
+            if (propertyId <= 0)
+                return new List<clsPropertyImages>();
+
+            var dt = clsPropertyImagesData.GetImagesByPropertyID(propertyId);
+            var list = new List<clsPropertyImages>();
+
+            foreach (DataRow row in dt.Rows)
+            {
+                list.Add(new clsPropertyImages
+                {
+                    ImageId = (int)row["ImageId"],      // ✅ أضفنا ImageId
+                    PropertyId = (int)row["PropertyId"],
+                    ImagePath = row["ImagePath"].ToString(),
+                    CreatedAt = (DateTime)row["CreatedAt"],
+                    Mode = enMode.Update
+                });
+            }
+
+            return list;
+        }
+
+
+
+        public static clsPropertyImages GetFirstImageByPropertyID(int propertyId)
+        {
+            if (propertyId <= 0)
+                return null;
+
+            var images = GetImagesByPropertyID(propertyId);
+
+            return images.Count == 0 ? null : images[0];
+        }
+ 
+
+        
+        public static bool Delete(int imageId, int propertyId, SqlConnection connection, SqlTransaction transaction)
+        {
+            if (imageId <= 0 || propertyId <= 0)
+                return false;
+
+            // ✅ شلنا FindByImageID من هنا — الـ Validation بتتعمل بره الـ Transaction
+            return clsPropertyImagesData.Delete(imageId, propertyId, connection, transaction);
+        }
+
     }
 }
 

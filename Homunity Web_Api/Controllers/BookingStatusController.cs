@@ -62,10 +62,6 @@ namespace Homunity_Web_Api.Controllers
             });
         }
 
-        // =============================================
-        // ❌ حذفنا: GetByName, CheckExists
-        // السبب: Lookup table - الـ Client المفروض يعرف القيم
-        // وده بيقلل الـ Endpoints من 4 لـ 2 بس
-        // =============================================
+         
     }
 }

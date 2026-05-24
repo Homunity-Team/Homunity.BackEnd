@@ -16,8 +16,7 @@ namespace Homunity_Data_Access
                 using SqlConnection conn =
                     new SqlConnection(clsDataAccessSettings.ConnectionString);
 
-                string query =
-                    "SELECT 1 FROM PropertyStatus WHERE PropertyStatusId = @ID";
+                string query = "SELECT 1 FROM PropertyStatus WHERE PropertyStatusId = @ID";
 
                 using SqlCommand cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@ID", statusId);

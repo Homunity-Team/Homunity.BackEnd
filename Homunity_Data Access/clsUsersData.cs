@@ -61,51 +61,54 @@ namespace Homunity_Data_Access
 
 
         // Get User By Phone
-        public static bool GetUserByPhone(string Phone, int UserID, string FirstName, string LastName,
-                      string PasswordHash, int RoleID, bool IsActive)
+        public static bool GetUserByPhone(string Phone, out int UserID, out string FirstName,
+                                   out string LastName, out string PasswordHash,
+                                   out int RoleID, out bool IsActive)
         {
+            // قيم افتراضية — لازم تتحط لأنها out
+            UserID = -1;
+            FirstName = string.Empty;
+            LastName = string.Empty;
+            PasswordHash = string.Empty;
+            RoleID = -1;
+            IsActive = false;
+
             bool isFound = false;
 
             try
             {
-                using (SqlConnection connection =
-                       new SqlConnection(clsDataAccessSettings.ConnectionString))
+                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
                 {
                     string query = "SELECT * FROM Users WHERE Phone = @Phone";
 
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("@Phone", Phone);
-
                         connection.Open();
-                        SqlDataReader reader = command.ExecuteReader();
 
-                        if (reader.Read())
+                        using (SqlDataReader reader = command.ExecuteReader())
                         {
-                            isFound = true;
-
-                            UserID = (int)reader["UserId"];
-                            FirstName = (string)reader["FirstName"];
-                            LastName = (string)reader["LastName"];
-                            PasswordHash = (string)reader["PasswordHash"];
-                            RoleID = (int)reader["RoleId"];
-                            IsActive = (bool)reader["IsActive"];
-                        }
-                        else
-                        {
-                            isFound = false;
+                            if (reader.Read())
+                            {
+                                isFound = true;
+                                UserID = (int)reader["UserId"];
+                                FirstName = (string)reader["FirstName"];
+                                LastName = (string)reader["LastName"];
+                                PasswordHash = (string)reader["PasswordHash"];
+                                RoleID = (int)reader["RoleId"];
+                                IsActive = (bool)reader["IsActive"];
+                            }
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                isFound = false;
+                Console.WriteLine($"Error getting user by phone: {ex.Message}");
             }
 
             return isFound;
         }
-
 
 
         // Add New User

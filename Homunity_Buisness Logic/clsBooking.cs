@@ -8,13 +8,24 @@ namespace Homunity_Business_Logic
     {
         // =============================================
         // PROPERTIES
-        // =============================================
+        // ====================ش=========================
         public int BookingId { get; set; }
         public int PropertyId { get; set; }
         public int StudentId { get; set; }
         public int StatusId { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? ConfirmedAt { get; set; }
+
+
+        public string PropertyTitle { get; set; }
+        public decimal PropertyPrice { get; set; }
+        public string PropertyCity { get; set; }
+        public string PropertyArea { get; set; }
+        public string PropertyImagePath { get; set; }
+        public string PropertyAddress { get; set; }
+
+
+
 
         // Navigation Property
         public clsBookingStatus BookingStatusInfo { get; set; }
@@ -26,7 +37,9 @@ namespace Homunity_Business_Logic
         // Status Constants - بدل ما نكتب أرقام في الكود
         private const int STATUS_INPROCESS = 2;
         private const int STATUS_BOOKED = 3;
-        private const int STATUS_CANCELLED = 6;
+        private const int STATUS_CANCELLED = 4;
+
+
 
         // =============================================
         // CONSTRUCTORS
@@ -42,8 +55,19 @@ namespace Homunity_Business_Logic
             Mode = enMode.AddNew;
         }
 
+
+
+     
+
+
+        
         private clsBooking(int BookingId, int PropertyId, int StudentId,
-                           int StatusId, DateTime CreatedAt, DateTime? ConfirmedAt)
+           int StatusId, string StatusName,
+           DateTime CreatedAt, DateTime? ConfirmedAt,
+           string PropertyTitle, decimal PropertyPrice,
+           string PropertyCity, string PropertyArea,
+           string PropertyImagePath,
+           string PropertyAddress)  // ✅ NEW PARAM
         {
             this.BookingId = BookingId;
             this.PropertyId = PropertyId;
@@ -51,28 +75,58 @@ namespace Homunity_Business_Logic
             this.StatusId = StatusId;
             this.CreatedAt = CreatedAt;
             this.ConfirmedAt = ConfirmedAt;
+            this.PropertyTitle = PropertyTitle;
+            this.PropertyPrice = PropertyPrice;
+            this.PropertyCity = PropertyCity;
+            this.PropertyArea = PropertyArea;
+            this.PropertyImagePath = PropertyImagePath;
+            this.PropertyAddress = PropertyAddress;  // ✅
             this.BookingStatusInfo = clsBookingStatus.Find(StatusId);
             Mode = enMode.Update;
         }
 
-        // =============================================
-        // STATIC FIND
-        // =============================================
+
+
+
         public static clsBooking Find(int BookingId)
         {
-            int PropertyId = -1, StudentId = -1, StatusId = -1;
+            int PropertyId = -1;
+            int StudentId = -1;
+            int StatusId = -1;
+            string StatusName = string.Empty;
             DateTime CreatedAt = DateTime.Now;
             DateTime? ConfirmedAt = null;
+            string PropertyTitle = string.Empty;
+            string PropertyCity = string.Empty;
+            string PropertyArea = string.Empty;
+            decimal PropertyPrice = 0;
+            string PropertyImagePath = null;
+            string PropertyAddress = string.Empty;  // ✅ NEW
 
-            if (clsBookingData.GetBookingByID(BookingId, ref PropertyId, ref StudentId,
-                                              ref StatusId, ref CreatedAt, ref ConfirmedAt))
+            if (clsBookingData.GetBookingByID(
+                    BookingId,
+                    ref PropertyId, ref StudentId,
+                    ref StatusId, ref StatusName,
+                    ref CreatedAt, ref ConfirmedAt,
+                    ref PropertyTitle, ref PropertyCity,
+                    ref PropertyArea, ref PropertyPrice,
+                    ref PropertyImagePath,
+                    ref PropertyAddress))  // ✅ NEW
             {
-                return new clsBooking(BookingId, PropertyId, StudentId,
-                                      StatusId, CreatedAt, ConfirmedAt);
+                return new clsBooking(
+                    BookingId, PropertyId, StudentId,
+                    StatusId, StatusName,
+                    CreatedAt, ConfirmedAt,
+                    PropertyTitle, PropertyPrice,
+                    PropertyCity, PropertyArea,
+                    PropertyImagePath,
+                    PropertyAddress  // ✅ NEW
+                );
             }
-
             return null;
         }
+
+
 
         // =============================================
         // GET METHODS
@@ -82,9 +136,7 @@ namespace Homunity_Business_Logic
 
         public static DataTable GetBookingsByOwnerID(int OwnerId)
             => clsBookingData.GetBookingsByOwnerID(OwnerId);
-
-        public static bool IsBookingExist(int BookingId)
-            => clsBookingData.IsBookingExist(BookingId);
+         
 
         // =============================================
         // PRIVATE VALIDATION
@@ -119,6 +171,7 @@ namespace Homunity_Business_Logic
 
             return true;
         }
+        
 
         private bool _ValidateNoDoubleBooking()
         {
@@ -134,10 +187,7 @@ namespace Homunity_Business_Logic
         }
 
         // =============================================
-        // PRIVATE DATA ACCESS WRAPPERS
-        // هنا بالظبط الإجابة على سؤالك 
-        // Save() بينادي الـ private methods دي
-        // وهي اللي بتتكلم مع الداتا اكسس
+        // _Add New Status
         // =============================================
         private bool _AddNew()
         {
@@ -156,6 +206,10 @@ namespace Homunity_Business_Logic
             return false;
         }
 
+
+        // =============================================
+        // _Update Status 
+        // =============================================
         private bool _UpdateStatus()
         {
             return clsBookingData.UpdateBookingStatus(
@@ -165,8 +219,10 @@ namespace Homunity_Business_Logic
             );
         }
 
+
+
         // =============================================
-        // SAVE - Entry Point (الصح إنه ينادي الـ private methods)
+        // SAVE - Entry Point 
         // =============================================
         public bool Save()
         {
@@ -190,37 +246,40 @@ namespace Homunity_Business_Logic
             }
         }
 
+
+
         // =============================================
         // CONFIRM BOOKING - Owner Action
         // يشغّل Transaction: Confirm + Cancel Others
         // =============================================
-        public bool Confirm(int OwnerId)
+        public bool Confirm(int ownerId)
         {
-            // 1. Role Validation: OwnerId لازم يكون Owner
-            if (!clsBookingData.IsUserHasRole(OwnerId, "Owner"))
+            if (!clsBookingData.IsUserHasRole(ownerId, "Owner"))
                 return false;
 
-            // 2. الحجز لازم يكون InProcess عشان يتأكد
-            if (this.StatusId != STATUS_INPROCESS)
+            if (this.StatusId != 2) // InProcess
                 return false;
 
-            // 3. العقار مش Booked بالفعل
             if (clsBookingData.IsPropertyAlreadyBooked(this.PropertyId))
                 return false;
 
-            DateTime confirmedAt = DateTime.Now;
+            DateTime now = DateTime.Now;
 
-            // 4. نفذ Transaction في الداتا اكسس
-            if (clsBookingData.ConfirmBookingWithTransaction(this.BookingId, this.PropertyId, confirmedAt))
+            bool result = clsBookingData.ConfirmBookingWithTransaction(
+                this.BookingId,
+                this.PropertyId,
+                now
+            );
+
+            if (result)
             {
-                this.StatusId = STATUS_BOOKED;
-                this.ConfirmedAt = confirmedAt;
-                this.BookingStatusInfo = clsBookingStatus.Find(STATUS_BOOKED);
-                return true;
+                this.StatusId = 5; // Confirmed
+                this.ConfirmedAt = now;
             }
 
-            return false;
+            return result;
         }
+
 
         // =============================================
         // CANCEL BOOKING
@@ -241,24 +300,11 @@ namespace Homunity_Business_Logic
             return _UpdateStatus();
         }
 
-        // =============================================
-        // UPDATE STATUS - General (للـ Owner أو System)
-        // =============================================
-        public bool UpdateStatus(int NewStatusId, DateTime? ConfirmedAt = null)
+
+        public static DataTable GetBookingsByPropertyID(int propertyId)
         {
-            if (!clsBookingStatusData.IsBookingStatusExist(NewStatusId))
-                return false;
-
-            if (ConfirmedAt.HasValue)
-            {
-                if (ConfirmedAt.Value < this.CreatedAt || ConfirmedAt.Value > DateTime.Now)
-                    return false;
-            }
-
-            this.StatusId = NewStatusId;
-            this.ConfirmedAt = ConfirmedAt;
-
-            return _UpdateStatus();
+            return clsBookingData.GetBookingsByPropertyID(propertyId);
         }
+
     }
 }

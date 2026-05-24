@@ -141,34 +141,6 @@ namespace Homunity_Data_Access
             return isFound;
         }
 
-        // Check if Booking Status Exists by Name
-        public static bool IsBookingStatusExistByName(string StatusName)
-        {
-            bool isFound = false;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"SELECT 1 FROM BookingStatus 
-                                     WHERE StatusName = @StatusName";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@StatusName", StatusName);
-                        connection.Open();
-
-                        object result = command.ExecuteScalar();
-                        isFound = (result != null);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error checking booking status existence by name: " + ex.Message);
-            }
-
-            return isFound;
-        }
+         
     }
 }

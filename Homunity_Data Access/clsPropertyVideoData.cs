@@ -9,6 +9,84 @@ namespace Homunity_Data_Access
 {
     public class clsPropertyVideoData
     {
+        // ================= ADD NEW VIDEO =================
+        public static bool AddVideo(int PropertyID, string VideoPath,SqlConnection connection, SqlTransaction transaction)
+        {
+            try
+            {
+                string query = @"INSERT INTO PropertyVideo(PropertyId, VideoPath, CreatedAt)
+                         VALUES(@PropertyID, @VideoPath, GETDATE())";
+
+                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
+                {
+                    cmd.Parameters.AddWithValue("@PropertyID", PropertyID);
+                    cmd.Parameters.AddWithValue("@VideoPath", VideoPath);
+
+                    int rows = cmd.ExecuteNonQuery();
+                    return rows > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error adding video: {ex.Message}");
+                return false;
+            }
+        }
+ 
+        // ================= UPDATE VIDEO =================
+        public static bool UpdateVideo(int VideoId, string VideoPath)
+        {
+            int rowsAffected = 0;
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
+                {
+                    string query = @"UPDATE PropertyVideo
+                                     SET VideoPath = @VideoPath
+                                     WHERE VideoId = @VideoId";
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@VideoId", VideoId);
+                        command.Parameters.AddWithValue("@VideoPath", VideoPath);
+
+                        connection.Open();
+                        rowsAffected = command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating video: {ex.Message}");
+            }
+
+            return rowsAffected > 0;
+        }
+
+        // ================= Delete VIDEO =================
+
+        public static bool DeleteByPropertyID(int propertyId,SqlConnection connection, SqlTransaction transaction)
+        {
+            try
+            {
+                string query = @"DELETE FROM PropertyVideo WHERE PropertyId = @PropertyId";
+
+                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
+                {
+                    cmd.Parameters.AddWithValue("@PropertyId", propertyId);
+                    cmd.ExecuteNonQuery();
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting video: {ex.Message}");
+                return false;
+            }
+        }
+        
+        
         // ================= GET VIDEO BY ID =================
         public static bool GetVideoByID(int VideoId, ref int PropertyId, ref string VideoPath, ref DateTime CreatedAt)
         {
@@ -48,6 +126,7 @@ namespace Homunity_Data_Access
             return isFound;
         }
 
+        
         // ================= GET VIDEO BY PROPERTY ID =================
         public static bool GetVideoByPropertyID(int PropertyId, ref int VideoId, ref string VideoPath, ref DateTime CreatedAt)
         {
@@ -88,97 +167,5 @@ namespace Homunity_Data_Access
             return isFound;
         }
 
-        // ================= ADD NEW VIDEO =================
-        public static int AddNewVideo(int PropertyId, string VideoPath)
-        {
-            int VideoId = -1;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"INSERT INTO PropertyVideo
-                                     (PropertyId, VideoPath, CreatedAt)
-                                     OUTPUT INSERTED.VideoId
-                                     VALUES(@PropertyId, @VideoPath, GETDATE())";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@PropertyId", PropertyId);
-                        command.Parameters.AddWithValue("@VideoPath", VideoPath);
-
-                        connection.Open();
-                        object result = command.ExecuteScalar();
-                        if (result != null)
-                            VideoId = Convert.ToInt32(result);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error adding video: {ex.Message}");
-            }
-
-            return VideoId;
-        }
-
-        // ================= UPDATE VIDEO =================
-        public static bool UpdateVideo(int VideoId, string VideoPath)
-        {
-            int rowsAffected = 0;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"UPDATE PropertyVideo
-                                     SET VideoPath = @VideoPath
-                                     WHERE VideoId = @VideoId";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@VideoId", VideoId);
-                        command.Parameters.AddWithValue("@VideoPath", VideoPath);
-
-                        connection.Open();
-                        rowsAffected = command.ExecuteNonQuery();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating video: {ex.Message}");
-            }
-
-            return rowsAffected > 0;
-        }
-
-        // ================= DELETE VIDEO =================
-        public static bool DeleteVideo(int VideoId)
-        {
-            int rowsAffected = 0;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"DELETE FROM PropertyVideo
-                                     WHERE VideoId = @VideoId";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@VideoId", VideoId);
-                        connection.Open();
-                        rowsAffected = command.ExecuteNonQuery();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error deleting video: {ex.Message}");
-            }
-
-            return rowsAffected > 0;
-        }
     }
 }
