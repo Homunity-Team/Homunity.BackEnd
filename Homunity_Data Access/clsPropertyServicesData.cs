@@ -10,166 +10,206 @@ namespace Homunity_Data_Access
 {
     public class clsPropertyServicesData
     {
-
-        // ================= GET SERVICES BY PROPERTY ID =================
-        public static DataTable GetServicesByPropertyID(int propertyId)
+        // =====================================================
+        // GET VALID SERVICE IDs — async batch (ONE query)
+        // =====================================================
+        public static async Task<HashSet<int>> GetValidServiceIdsAsync(IEnumerable<int> serviceIds)
         {
-            var dt = new DataTable();
-
+            var result = new HashSet<int>();
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"SELECT S.ServiceId, S.Name, S.Icon
-                                     FROM PropertyServices PS
-                                     INNER JOIN Services S ON PS.ServiceId = S.ServiceId
-                                     WHERE PS.PropertyId = @PropertyId";
+                var ids = serviceIds.Distinct().ToList();
+                if (!ids.Any()) return result;
 
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@PropertyId", propertyId);
-                        connection.Open();
+                var paramNames = ids.Select((_, i) => $"@id{i}").ToList();
+                var sql = $"SELECT ServiceId FROM Services WHERE ServiceId IN ({string.Join(",", paramNames)})";
 
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                            dt.Load(reader);
-                    }
-                }
+                using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                using var cmd = new SqlCommand(sql, conn);
+
+                for (int i = 0; i < ids.Count; i++)
+                    cmd.Parameters.Add($"@id{i}", SqlDbType.Int).Value = ids[i];
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                    result.Add(reader.GetInt32(0));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting services by property: {ex.Message}");
+                Console.WriteLine($"GetValidServiceIdsAsync error: {ex.Message}");
             }
-
-            return dt;
+            return result;
         }
 
 
-        // ================= ADD SERVICE TO PROPERTY (بدون Transaction) =================
-        public static bool AddServiceToProperty(int propertyId, int serviceId)
-        {
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"INSERT INTO PropertyServices (PropertyId, ServiceId)
-                                     VALUES (@PropertyId, @ServiceId)";
-
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@PropertyId", propertyId);
-                        cmd.Parameters.AddWithValue("@ServiceId", serviceId);
-
-                        connection.Open();
-                        int rows = cmd.ExecuteNonQuery();
-                        return rows > 0;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error adding service to property: {ex.Message}");
-                return false;
-            }
-        }
-
-
-        // ================= ADD SERVICE TO PROPERTY (مع Transaction) =================
-        public static bool AddServiceToProperty(int propertyId, int serviceId,
+        // =====================================================
+        // BULK ADD SERVICES — async within transaction (ONE INSERT)
+        // =====================================================
+        public static async Task BulkAddServicesAsync(int propertyId,
+            IEnumerable<int> serviceIds,
             SqlConnection connection, SqlTransaction transaction)
         {
             try
             {
-                string query = @"INSERT INTO PropertyServices (PropertyId, ServiceId)
-                                 VALUES (@PropertyId, @ServiceId)";
+                var ids = serviceIds.Distinct().ToList();
+                if (!ids.Any()) return;
 
-                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
-                {
-                    cmd.Parameters.AddWithValue("@PropertyId", propertyId);
-                    cmd.Parameters.AddWithValue("@ServiceId", serviceId);
+                var values = ids.Select((_, i) => $"(@PropId, @svc{i})");
+                var sql = $"INSERT INTO PropertyServices (PropertyId, ServiceId) VALUES {string.Join(",", values)}";
 
-                    int rows = cmd.ExecuteNonQuery();
-                    return rows > 0;
-                }
+                using var cmd = new SqlCommand(sql, connection, transaction);
+                cmd.Parameters.Add("@PropId", SqlDbType.Int).Value = propertyId;
+
+                for (int i = 0; i < ids.Count; i++)
+                    cmd.Parameters.Add($"@svc{i}", SqlDbType.Int).Value = ids[i];
+
+                await cmd.ExecuteNonQueryAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error adding service to property (transaction): {ex.Message}");
-                return false;
+                Console.WriteLine($"BulkAddServicesAsync error: {ex.Message}");
+                throw; // fatal — نرجع الـ exception عشان الـ transaction يعمل Rollback
             }
         }
 
 
-        // ================= DELETE ALL SERVICES FROM PROPERTY =================
-        public static bool DeleteAllServicesByPropertyID(int propertyId)
+        // =====================================================
+        // DELETE ALL BY PROPERTY ID — async within transaction
+        // =====================================================
+        public static async Task DeleteAllByPropertyIDAsync(int propertyId,
+            SqlConnection connection, SqlTransaction transaction)
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"DELETE FROM PropertyServices WHERE PropertyId = @PropertyId";
+                const string query = "DELETE FROM PropertyServices WHERE PropertyId = @PropertyId";
 
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@PropertyId", propertyId);
-                        connection.Open();
-                        cmd.ExecuteNonQuery();
-                        return true;
-                    }
-                }
+                using var cmd = new SqlCommand(query, connection, transaction);
+                cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
+
+                await cmd.ExecuteNonQueryAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting services: {ex.Message}");
-                return false;
+                Console.WriteLine($"DeleteAllServicesAsync error: {ex.Message}");
+                throw;
             }
         }
 
 
-        // ================= IS SERVICE ALREADY ADDED =================
+         
+        // =====================================================
+        // ADD SERVICE — async within transaction (single)
+        // =====================================================
+        public static async Task<bool> AddServiceToPropertyAsync(int propertyId, int serviceId,
+            SqlConnection connection, SqlTransaction transaction)
+        {
+            try
+            {
+                const string query = @"
+                    INSERT INTO PropertyServices (PropertyId, ServiceId)
+                    VALUES (@PropertyId, @ServiceId)";
+
+                using var cmd = new SqlCommand(query, connection, transaction);
+                cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
+                cmd.Parameters.Add("@ServiceId", SqlDbType.Int).Value = serviceId;
+
+                return await cmd.ExecuteNonQueryAsync() > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"AddServiceToPropertyAsync error: {ex.Message}");
+                return false;
+            }
+        }
+
+ 
+
+        // =====================================================
+        // ADD SERVICE — async standalone (بدون transaction)
+        // =====================================================
+        public static async Task<bool> AddServiceToPropertyAsync(int propertyId, int serviceId)
+        {
+            try
+            {
+                using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                const string query = @"
+                    INSERT INTO PropertyServices (PropertyId, ServiceId)
+                    VALUES (@PropertyId, @ServiceId)";
+
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
+                cmd.Parameters.Add("@ServiceId", SqlDbType.Int).Value = serviceId;
+
+                await conn.OpenAsync();
+                return await cmd.ExecuteNonQueryAsync() > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"AddServiceToProperty error: {ex.Message}");
+                return false;
+            }
+        }
+
+ 
+
+        // =====================================================
+        // IS SERVICE ADDED — sync (بتتكلم من الـ Validation)
+        // =====================================================
         public static bool IsServiceAddedToProperty(int propertyId, int serviceId)
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"SELECT 1 FROM PropertyServices
-                                     WHERE PropertyId = @PropertyId AND ServiceId = @ServiceId";
+                using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                const string query = @"
+                    SELECT 1 FROM PropertyServices
+                    WHERE PropertyId = @PropertyId AND ServiceId = @ServiceId";
 
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@PropertyId", propertyId);
-                        cmd.Parameters.AddWithValue("@ServiceId", serviceId);
-                        connection.Open();
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
+                cmd.Parameters.Add("@ServiceId", SqlDbType.Int).Value = serviceId;
 
-                        object result = cmd.ExecuteScalar();
-                        return result != null;
-                    }
-                }
+                conn.Open();
+                return cmd.ExecuteScalar() != null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error checking service: {ex.Message}");
+                Console.WriteLine($"IsServiceAdded error: {ex.Message}");
                 return false;
             }
         }
-        public static bool DeleteAllServicesByPropertyID(int propertyId, SqlConnection connection, SqlTransaction transaction)
+
+
+        // =====================================================
+        // GET SERVICES BY PROPERTY ID — async standalone
+        // =====================================================
+        public static async Task<DataTable> GetServicesByPropertyIDAsync(int propertyId)
         {
+            var dt = new DataTable();
             try
             {
-                string query = "DELETE FROM PropertyServices WHERE PropertyId = @PropertyId";
+                using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                const string query = @"
+                    SELECT S.ServiceId, S.Name, S.Icon
+                    FROM PropertyServices PS
+                    INNER JOIN Services S ON PS.ServiceId = S.ServiceId
+                    WHERE PS.PropertyId = @PropertyId";
 
-                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
-                {
-                    cmd.Parameters.AddWithValue("@PropertyId", propertyId);
-                    cmd.ExecuteNonQuery();
-                    return true;
-                }
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                dt.Load(reader);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting services: {ex.Message}");
-                return false;
+                Console.WriteLine($"GetServicesByPropertyIDAsync error: {ex.Message}");
             }
+            return dt;
         }
+
+        
     }
 }

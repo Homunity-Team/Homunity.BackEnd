@@ -1,10 +1,11 @@
 ﻿using Homunity_Buisness_Logic;
+using Homunity_Business_Logic;
 using Homunity_Shared_DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Homunity_Web_Api.Controllers
 {
-    [Route("api/Chat")]
+    [Route("api/[controller]")]
     [ApiController]
     public class ChatController : ControllerBase
     {

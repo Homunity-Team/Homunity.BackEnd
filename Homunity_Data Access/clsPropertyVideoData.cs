@@ -2,6 +2,7 @@
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,163 +10,151 @@ namespace Homunity_Data_Access
 {
     public class clsPropertyVideoData
     {
-        // ================= ADD NEW VIDEO =================
-        public static bool AddVideo(int PropertyID, string VideoPath,SqlConnection connection, SqlTransaction transaction)
+        // =====================================================
+        // ADD VIDEO — async within transaction
+        // =====================================================
+        public static async Task<bool> AddVideoAsync(int propertyID, string videoPath,
+            SqlConnection connection, SqlTransaction transaction)
         {
             try
             {
-                string query = @"INSERT INTO PropertyVideo(PropertyId, VideoPath, CreatedAt)
-                         VALUES(@PropertyID, @VideoPath, GETDATE())";
+                const string query = @"
+                    INSERT INTO PropertyVideo (PropertyId, VideoPath, CreatedAt)
+                    VALUES (@PropertyID, @VideoPath, GETDATE())";
 
-                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
-                {
-                    cmd.Parameters.AddWithValue("@PropertyID", PropertyID);
-                    cmd.Parameters.AddWithValue("@VideoPath", VideoPath);
+                using var cmd = new SqlCommand(query, connection, transaction);
+                cmd.Parameters.Add("@PropertyID", SqlDbType.Int).Value = propertyID;
+                cmd.Parameters.Add("@VideoPath", SqlDbType.NVarChar, 200).Value = videoPath;
 
-                    int rows = cmd.ExecuteNonQuery();
-                    return rows > 0;
-                }
+                return await cmd.ExecuteNonQueryAsync() > 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error adding video: {ex.Message}");
+                Console.WriteLine($"AddVideoAsync error: {ex.Message}");
+                return false;
+            }
+        }
+
+ 
+
+        // =====================================================
+        // UPDATE VIDEO — async standalone
+        // =====================================================
+        public static async Task<bool> UpdateVideoAsync(int videoId, string videoPath)
+        {
+            try
+            {
+                using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                const string query = @"
+                    UPDATE PropertyVideo
+                    SET VideoPath = @VideoPath
+                    WHERE VideoId = @VideoId";
+
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.Add("@VideoId", SqlDbType.Int).Value = videoId;
+                cmd.Parameters.Add("@VideoPath", SqlDbType.NVarChar, 200).Value = videoPath;
+
+                await conn.OpenAsync();
+                return await cmd.ExecuteNonQueryAsync() > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"UpdateVideoAsync error: {ex.Message}");
                 return false;
             }
         }
  
-        // ================= UPDATE VIDEO =================
-        public static bool UpdateVideo(int VideoId, string VideoPath)
+        // =====================================================
+        // DELETE BY PROPERTY ID — async within transaction
+        // =====================================================
+        public static async Task DeleteByPropertyIDAsync(int propertyId,
+            SqlConnection connection, SqlTransaction transaction)
         {
-            int rowsAffected = 0;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"UPDATE PropertyVideo
-                                     SET VideoPath = @VideoPath
-                                     WHERE VideoId = @VideoId";
+                const string query = "DELETE FROM PropertyVideo WHERE PropertyId = @PropertyId";
 
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@VideoId", VideoId);
-                        command.Parameters.AddWithValue("@VideoPath", VideoPath);
+                using var cmd = new SqlCommand(query, connection, transaction);
+                cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
 
-                        connection.Open();
-                        rowsAffected = command.ExecuteNonQuery();
-                    }
-                }
+                await cmd.ExecuteNonQueryAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error updating video: {ex.Message}");
+                Console.WriteLine($"DeleteVideoByPropertyIDAsync error: {ex.Message}");
             }
-
-            return rowsAffected > 0;
         }
 
-        // ================= Delete VIDEO =================
+ 
 
-        public static bool DeleteByPropertyID(int propertyId,SqlConnection connection, SqlTransaction transaction)
+        // =====================================================
+        // GET VIDEO BY ID — sync (ref pattern)
+        // =====================================================
+        public static bool GetVideoByID(int videoId,
+            ref int propertyId, ref string videoPath, ref DateTime createdAt)
         {
             try
             {
-                string query = @"DELETE FROM PropertyVideo WHERE PropertyId = @PropertyId";
+                using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                const string query = @"
+                    SELECT PropertyId, VideoPath, CreatedAt
+                    FROM PropertyVideo
+                    WHERE VideoId = @VideoId";
 
-                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
-                {
-                    cmd.Parameters.AddWithValue("@PropertyId", propertyId);
-                    cmd.ExecuteNonQuery();
-                    return true;
-                }
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.Add("@VideoId", SqlDbType.Int).Value = videoId;
+
+                conn.Open();
+                using var reader = cmd.ExecuteReader();
+
+                if (!reader.Read()) return false;
+
+                propertyId = (int)reader["PropertyId"];
+                videoPath = reader["VideoPath"]?.ToString() ?? string.Empty;
+                createdAt = (DateTime)reader["CreatedAt"];
+                return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting video: {ex.Message}");
+                Console.WriteLine($"GetVideoByID error: {ex.Message}");
                 return false;
             }
         }
-        
-        
-        // ================= GET VIDEO BY ID =================
-        public static bool GetVideoByID(int VideoId, ref int PropertyId, ref string VideoPath, ref DateTime CreatedAt)
-        {
-            bool isFound = false;
 
+
+        // =====================================================
+        // GET VIDEO BY PROPERTY ID — sync (ref pattern)
+        // =====================================================
+        public static bool GetVideoByPropertyID(int propertyId,
+            ref int videoId, ref string videoPath, ref DateTime createdAt)
+        {
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"SELECT PropertyId, VideoPath, CreatedAt
-                                     FROM PropertyVideo 
-                                     WHERE VideoId = @VideoId";
+                using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                const string query = @"
+                    SELECT TOP 1 VideoId, VideoPath, CreatedAt
+                    FROM PropertyVideo
+                    WHERE PropertyId = @PropertyId
+                    ORDER BY CreatedAt DESC";
 
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@VideoId", VideoId);
-                        connection.Open();
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
 
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                isFound = true;
-                                PropertyId = (int)reader["PropertyId"];
-                                VideoPath = reader["VideoPath"]?.ToString() ?? string.Empty;
-                                CreatedAt = (DateTime)reader["CreatedAt"];
-                            }
-                        }
-                    }
-                }
+                conn.Open();
+                using var reader = cmd.ExecuteReader();
+
+                if (!reader.Read()) return false;
+
+                videoId = (int)reader["VideoId"];
+                videoPath = reader["VideoPath"]?.ToString() ?? string.Empty;
+                createdAt = (DateTime)reader["CreatedAt"];
+                return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting video: {ex.Message}");
+                Console.WriteLine($"GetVideoByPropertyID error: {ex.Message}");
+                return false;
             }
-
-            return isFound;
         }
-
-        
-        // ================= GET VIDEO BY PROPERTY ID =================
-        public static bool GetVideoByPropertyID(int PropertyId, ref int VideoId, ref string VideoPath, ref DateTime CreatedAt)
-        {
-            bool isFound = false;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
-                {
-                    string query = @"SELECT TOP 1 VideoId, VideoPath, CreatedAt
-                                     FROM PropertyVideo
-                                     WHERE PropertyId = @PropertyId
-                                     ORDER BY CreatedAt DESC";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@PropertyId", PropertyId);
-                        connection.Open();
-
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                isFound = true;
-                                VideoId = (int)reader["VideoId"];
-                                VideoPath = reader["VideoPath"]?.ToString() ?? string.Empty;
-                                CreatedAt = (DateTime)reader["CreatedAt"];
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting property video: {ex.Message}");
-            }
-
-            return isFound;
-        }
-
     }
 }

@@ -86,7 +86,8 @@ namespace Homunity_Buisness_Logic
             if (!Validate(fileSizeBytes))
                 return false;
 
-            int newId = clsPropertyImagesData.AddImage(propertyId, imagePath, connection, transaction);
+            int newId = clsPropertyImagesData.AddImageAsync(propertyId, imagePath, connection, transaction)
+                                           .GetAwaiter().GetResult();
             if (newId == -1)
                 return false;
 
@@ -104,7 +105,7 @@ namespace Homunity_Buisness_Logic
                 return false;
 
             // Update in database
-            return clsPropertyImagesData.UpdateImage(ImageId, ImagePath);
+            return clsPropertyImagesData.UpdateImageAsync(ImageId, ImagePath).GetAwaiter().GetResult(); 
         }
 
 
@@ -131,8 +132,8 @@ namespace Homunity_Buisness_Logic
                 return false;
             }
         }
- 
-        
+
+
         // ================= FIND BY ID =================
         public static clsPropertyImages FindByImageID(int imageId)
         {
@@ -143,9 +144,16 @@ namespace Homunity_Buisness_Logic
             string imagePath = string.Empty;
             DateTime createdAt = DateTime.Now;
 
-            // استخدام ref لأن الدالة بتعدل القيم
-            bool isFound = clsPropertyImagesData.GetImageByID(
-                imageId, ref propertyId, ref imagePath, ref createdAt);
+            // استدعاء الدالة غير المتزامنة وتحويلها إلى متزامن باستخدام Task.Run
+            bool isFound = Task.Run(async () =>
+            {
+                return await clsPropertyImagesData.GetImageByIDAsync(imageId, (id, path, date) =>
+                {
+                    propertyId = id;
+                    imagePath = path;
+                    createdAt = date;
+                });
+            }).GetAwaiter().GetResult();
 
             if (!isFound)
                 return null;
@@ -160,7 +168,6 @@ namespace Homunity_Buisness_Logic
             };
         }
 
-       
 
 
         // ================= GET IMAGES COUNT =================
@@ -169,7 +176,7 @@ namespace Homunity_Buisness_Logic
             if (propertyId <= 0)
                 return 0;
 
-            return clsPropertyImagesData.GetImagesCountByPropertyID(propertyId);
+            return clsPropertyImagesData.GetImagesCountByPropertyIDAsync(propertyId).GetAwaiter().GetResult();
         }
 
 
@@ -179,7 +186,7 @@ namespace Homunity_Buisness_Logic
             if (propertyId <= 0)
                 return new List<clsPropertyImages>();
 
-            var dt = clsPropertyImagesData.GetImagesByPropertyID(propertyId);
+            var dt = clsPropertyImagesData.GetImagesByPropertyIDAsync(propertyId).GetAwaiter().GetResult();
             var list = new List<clsPropertyImages>();
 
             foreach (DataRow row in dt.Rows)
@@ -217,7 +224,7 @@ namespace Homunity_Buisness_Logic
                 return false;
 
             // ✅ شلنا FindByImageID من هنا — الـ Validation بتتعمل بره الـ Transaction
-            return clsPropertyImagesData.Delete(imageId, propertyId, connection, transaction);
+            return clsPropertyImagesData.DeleteAsync(imageId, propertyId, connection, transaction).GetAwaiter().GetResult();
         }
 
     }

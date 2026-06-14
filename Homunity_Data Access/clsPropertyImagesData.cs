@@ -10,191 +10,191 @@ namespace Homunity_Data_Access
 {
     public class clsPropertyImagesData
     {
-       
-        // ================= ADD NEW IMAGE ===================
-        public static int AddImage(int PropertyID, string ImagePath,SqlConnection connection, SqlTransaction transaction)
-        {
-            try
+ 
+            // =====================================================
+            // ADD IMAGE — async within transaction
+            // =====================================================
+            public static async Task<int> AddImageAsync(int propertyID, string imagePath,
+                SqlConnection connection, SqlTransaction transaction)
             {
-                string query = @"INSERT INTO PropertyImages(PropertyId, ImagePath, CreatedAt)
-                         OUTPUT INSERTED.ImageId
-                         VALUES(@PropertyID, @ImagePath, GETDATE())";
-
-                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
+                try
                 {
-                    cmd.Parameters.AddWithValue("@PropertyID", PropertyID);
-                    cmd.Parameters.AddWithValue("@ImagePath", ImagePath);
+                    const string query = @"
+                    INSERT INTO PropertyImages (PropertyId, ImagePath, CreatedAt)
+                    OUTPUT INSERTED.ImageId
+                    VALUES (@PropertyID, @ImagePath, GETDATE())";
 
-                    object result = cmd.ExecuteScalar();
+                    using var cmd = new SqlCommand(query, connection, transaction);
+                    cmd.Parameters.Add("@PropertyID", SqlDbType.Int).Value = propertyID;
+                    cmd.Parameters.Add("@ImagePath", SqlDbType.NVarChar, 200).Value = imagePath;
+
+                    var result = await cmd.ExecuteScalarAsync();
                     return result != null ? Convert.ToInt32(result) : -1;
                 }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"AddImageAsync error: {ex.Message}");
+                    return -1;
+                }
             }
-            catch (Exception ex)
+
+            
+
+            // =====================================================
+            // UPDATE IMAGE — async standalone
+            // =====================================================
+            public static async Task<bool> UpdateImageAsync(int imageId, string imagePath)
             {
-                Console.WriteLine($"Error adding image: {ex.Message}");
-                return -1;
+                try
+                {
+                    using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                    const string query = @"
+                    UPDATE PropertyImages
+                    SET ImagePath = @ImagePath
+                    WHERE ImageId = @ImageId";
+
+                    using var cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.Add("@ImageId", SqlDbType.Int).Value = imageId;
+                    cmd.Parameters.Add("@ImagePath", SqlDbType.NVarChar, 200).Value = imagePath;
+
+                    await conn.OpenAsync();
+                    return await cmd.ExecuteNonQueryAsync() > 0;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"UpdateImageAsync error: {ex.Message}");
+                    return false;
+                }
             }
-        }
+
  
-      
-        // ================= UPDATE IMAGE ===================
-        public static bool UpdateImage(int ImageId, string ImagePath)
-        {
-            int rowsAffected = 0;
 
-            try
+            // =====================================================
+            // DELETE IMAGE — async within transaction
+            // =====================================================
+            public static async Task<bool> DeleteAsync(int imageId, int propertyId,
+                SqlConnection connection, SqlTransaction transaction)
             {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
+                try
                 {
-                    string query = @"UPDATE PropertyImages
-                                     SET ImagePath = @ImagePath
-                                     WHERE ImageId = @ImageId";
+                    const string query = @"
+                    DELETE FROM PropertyImages
+                    WHERE ImageId = @ImageId AND PropertyId = @PropertyId";
 
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@ImageId", ImageId);
-                        command.Parameters.AddWithValue("@ImagePath", ImagePath);
+                    using var cmd = new SqlCommand(query, connection, transaction);
+                    cmd.Parameters.Add("@ImageId", SqlDbType.Int).Value = imageId;
+                    cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
 
-                        connection.Open();
-                        rowsAffected = command.ExecuteNonQuery();
-                    }
+                    return await cmd.ExecuteNonQueryAsync() > 0;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"DeleteImageAsync error: {ex.Message}");
+                    return false;
                 }
             }
-            catch (Exception ex)
+
+   
+            // =====================================================
+            // GET IMAGE BY ID — async standalone
+            // =====================================================
+            public static async Task<bool> GetImageByIDAsync(int imageId,
+                Action<int, string, DateTime> onFound)
             {
-                Console.WriteLine($"Error updating image: {ex.Message}");
-            }
-
-            return rowsAffected > 0;
-        }
-
-
-        public static bool Delete(int imageId, int propertyId,SqlConnection connection, SqlTransaction transaction)
-        {
-            try
-            {
-                string query = @"DELETE FROM PropertyImages 
-                         WHERE ImageId = @ImageId AND PropertyId = @PropertyId";
-
-                using (SqlCommand cmd = new SqlCommand(query, connection, transaction))
+                try
                 {
-                    cmd.Parameters.AddWithValue("@ImageId", imageId);
-                    cmd.Parameters.AddWithValue("@PropertyId", propertyId);
-                    int rows = cmd.ExecuteNonQuery();
-                    return rows > 0;
+                    using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                    const string query = @"
+                    SELECT PropertyId, ImagePath, CreatedAt
+                    FROM PropertyImages
+                    WHERE ImageId = @ImageId";
+
+                    using var cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.Add("@ImageId", SqlDbType.Int).Value = imageId;
+
+                    await conn.OpenAsync();
+                    using var reader = await cmd.ExecuteReaderAsync();
+
+                    if (!await reader.ReadAsync()) return false;
+
+                    onFound(
+                        (int)reader["PropertyId"],
+                        reader["ImagePath"]?.ToString() ?? string.Empty,
+                        (DateTime)reader["CreatedAt"]
+                    );
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GetImageByIDAsync error: {ex.Message}");
+                    return false;
                 }
             }
-            catch (Exception ex)
+
+            
+ 
+            // =====================================================
+            // GET IMAGES COUNT — async standalone
+            // =====================================================
+            public static async Task<int> GetImagesCountByPropertyIDAsync(int propertyId)
             {
-                Console.WriteLine($"Error deleting image: {ex.Message}");
-                return false;
-            }
-        }
-
-
-        // ================= Get Image ByI D ===============
-        public static bool GetImageByID(int ImageId, ref int PropertyId, ref string ImagePath, ref DateTime CreatedAt)
-        {
-            bool isFound = false;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
+                try
                 {
-                    string query = @"SELECT PropertyId, ImagePath, CreatedAt
-                                     FROM PropertyImages
-                                     WHERE ImageId = @ImageId";
+                    using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                    const string query = @"
+                    SELECT COUNT(*)
+                    FROM PropertyImages
+                    WHERE PropertyId = @PropertyId";
 
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@ImageId", ImageId);
-                        connection.Open();
+                    using var cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
 
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                isFound = true;
-                                PropertyId = (int)reader["PropertyId"];
-                                ImagePath = reader["ImagePath"]?.ToString() ?? string.Empty;
-                                CreatedAt = (DateTime)reader["CreatedAt"];
-                            }
-                        }
-                    }
+                    await conn.OpenAsync();
+                    return (int)await cmd.ExecuteScalarAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GetImagesCountAsync error: {ex.Message}");
+                    return 0;
                 }
             }
-            catch (Exception ex)
+
+
+            // =====================================================
+            // GET IMAGES BY PROPERTY ID — async standalone
+            // =====================================================
+            public static async Task<DataTable> GetImagesByPropertyIDAsync(int propertyId)
             {
-                Console.WriteLine($"Error getting image: {ex.Message}");
-            }
-
-            return isFound;
-        }
-
-
-
-        // ================= GET IMAGES COUNT ==============
-        public static int GetImagesCountByPropertyID(int propertyId)
-        {
-            int count = 0;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
+                var dt = new DataTable();
+                try
                 {
-                    string query = @"SELECT COUNT(*) 
-                                     FROM PropertyImages
-                                     WHERE PropertyId = @PropertyId";
+                    using var conn = new SqlConnection(clsDataAccessSettings.ConnectionString);
+                    const string query = @"
+                    SELECT ImageId, PropertyId, ImagePath, CreatedAt
+                    FROM PropertyImages
+                    WHERE PropertyId = @PropertyId
+                    ORDER BY CreatedAt ASC";
 
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@PropertyId", propertyId);
-                        connection.Open();
-                        count = (int)command.ExecuteScalar();
-                    }
+                    using var cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.Add("@PropertyId", SqlDbType.Int).Value = propertyId;
+
+                    await conn.OpenAsync();
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    dt.Load(reader);
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error counting images: {ex.Message}");
-            }
-
-            return count;
-        }
-
-
-        // Method جديدة بنفس الـ Pattern الموجود في الكلاس
-        public static DataTable GetImagesByPropertyID(int propertyId)
-        {
-            DataTable dt = new DataTable();
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataAccessSettings.ConnectionString))
+                catch (Exception ex)
                 {
-                    string query = @"SELECT ImageId, PropertyId, ImagePath, CreatedAt
-                             FROM PropertyImages
-                             WHERE PropertyId = @PropertyId
-                             ORDER BY CreatedAt ASC";
-
-                    using (SqlCommand command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@PropertyId", propertyId);
-                        connection.Open();
-
-                        using (SqlDataReader reader = command.ExecuteReader())
-                            dt.Load(reader);
-                    }
+                    Console.WriteLine($"GetImagesByPropertyIDAsync error: {ex.Message}");
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting images by property: {ex.Message}");
+                return dt;
             }
 
-            return dt;
-        }
+ 
 
-
+        
     }
+   
 }
+
+
+ 

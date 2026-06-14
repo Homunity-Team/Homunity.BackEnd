@@ -25,9 +25,20 @@ public class CreatePropertyRequest
     public string Address { get; set; }
     public int UniversityId { get; set; }
 
+
+
+    public string City { get; set; }
+    public string Area { get; set; }
+    public string Street { get; set; }
+
+
+
     public List<IFormFile> Images { get; set; }
 
     public IFormFile? Video { get; set; }
 
     public List<int> Services { get; set; }
+
+
+
 }
