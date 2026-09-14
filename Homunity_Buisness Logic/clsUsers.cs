@@ -156,6 +156,27 @@ namespace Homunity_Buisness_Logic
                 Mode = enMode.Update
             };
         }
+
+
+
+        // ================= Business-level wrappers (Sprint 1) ================= //
+        public static bool IsPhoneExists(string phone)
+        {
+            return clsUsersData.IsPhoneExists(phone);
+        }
+
+        public static bool UpdateStatus(int userId, bool isActive)
+        {
+            return clsUsersData.UpdateUserStatus(userId, isActive);
+        }
+
+        public static bool Delete(int userId)
+        {
+            return clsUsersData.DeleteUser(userId);
+        }
+
+
+
         // ================= Helpers =================
 
         private bool ValidateData()

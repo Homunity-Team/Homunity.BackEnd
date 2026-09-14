@@ -1,4 +1,7 @@
-﻿using Homunity_Business_Logic;
+﻿using Homunity_Buisness_Logic;
+using Homunity_Business_Logic;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 
@@ -6,60 +9,55 @@ namespace Homunity_Web_Api.Controllers
 {
     [Route("api/Booking")]
     [ApiController]
-    public class BookingController : ControllerBase
+    [Authorize]
+    public class BookingController : AuthorizedControllerBase
     {
-        // =============================================
-        // POST: api/Booking
-        // Create New Booking (Student Action)
-        // =============================================
         [HttpPost]
+        [Authorize(Roles = "Student")]
         public IActionResult CreateBooking(int PropertyId, int StudentId)
         {
-            if (PropertyId <= 0) return BadRequest(new { message = "Invalid PropertyId" });
-            if (StudentId <= 0) return BadRequest(new { message = "Invalid StudentId" });
+            if (PropertyId <= 0)
+                return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (StudentId <= 0)
+                return Problem(detail: "Invalid StudentId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (StudentId != CurrentUserId) return Forbid();
 
-            clsBooking booking = new clsBooking
-            {
-                PropertyId = PropertyId,
-                StudentId = StudentId,
-                StatusId = 2  // InProcess
-            };
+            clsBooking booking = new clsBooking { PropertyId = PropertyId, StudentId = StudentId, StatusId = 2 };
 
             if (booking.Save())
             {
-                return CreatedAtAction(
-                    nameof(GetBookingById),
-                    new { id = booking.BookingId },
-                    new
-                    {
-                        bookingId = booking.BookingId,
-                        propertyId = booking.PropertyId,
-                        studentId = booking.StudentId,
-                        statusId = booking.StatusId,
-                        createdAt = booking.CreatedAt,
-                        message = "Booking created successfully"
-                    });
+                return CreatedAtAction(nameof(GetBookingById), new { id = booking.BookingId }, new
+                {
+                    bookingId = booking.BookingId,
+                    propertyId = booking.PropertyId,
+                    studentId = booking.StudentId,
+                    statusId = booking.StatusId,
+                    createdAt = booking.CreatedAt,
+                    message = "Booking created successfully"
+                });
             }
 
-            return StatusCode(500, new { message = "Error creating booking." });
+            return Problem(detail: "Error creating booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
         }
 
-
-
-
-        // =============================================
-        // GET: api/Booking/{id}
-        // =============================================
         [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetBookingById(int id)
         {
-            if (id <= 0) return BadRequest(new { message = "Invalid BookingId" });
+            if (id <= 0)
+                return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
             clsBooking booking = clsBooking.Find(id);
-            if (booking == null) return NotFound(new { message = $"Booking {id} not found" });
+            if (booking == null)
+                return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+
+            var property = clsProperties.FindByID(booking.PropertyId);
+            bool isPropertyOwner = property != null && property.OwnerID == CurrentUserId;
+            if (booking.StudentId != CurrentUserId && !isPropertyOwner && !IsAdmin)
+                return Forbid();
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-
             return Ok(new
             {
                 bookingId = booking.BookingId,
@@ -72,28 +70,26 @@ namespace Homunity_Web_Api.Controllers
                     propertyId = booking.PropertyId,
                     title = booking.PropertyTitle,
                     price = booking.PropertyPrice,
-                    address = booking.PropertyAddress,  // ✅ بدل location
+                    address = booking.PropertyAddress,
                     imageUrl = booking.PropertyImagePath == null ? null : $"{baseUrl}/{booking.PropertyImagePath}"
                 }
             });
         }
 
-
-
-        // =============================================
-        // GET: api/Booking/student/{studentId}
-        // =============================================
         [HttpGet("student/{studentId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetBookingsByStudent(int studentId)
         {
-            if (studentId <= 0) return BadRequest(new { message = "Invalid StudentId" });
+            if (studentId <= 0)
+                return Problem(detail: "Invalid StudentId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (studentId != CurrentUserId && !IsAdmin) return Forbid();
 
             DataTable bookings = clsBooking.GetBookingsByStudentID(studentId);
             if (bookings.Rows.Count == 0)
-                return NotFound(new { message = $"No bookings for student {studentId}" });
+                return Problem(detail: $"No bookings for student {studentId}.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-
             var result = bookings.AsEnumerable().Select(row => new
             {
                 bookingId = Convert.ToInt32(row["BookingId"]),
@@ -106,7 +102,7 @@ namespace Homunity_Web_Api.Controllers
                     propertyId = Convert.ToInt32(row["PropertyId"]),
                     title = row["PropertyTitle"].ToString(),
                     price = Convert.ToDecimal(row["Price"]),
-                    address = row["PropertyAddress"].ToString(),   // ✅ بدل location
+                    address = row["PropertyAddress"].ToString(),
                     imageUrl = row["ImagePath"] == DBNull.Value ? null : $"{baseUrl}/{row["ImagePath"]}"
                 }
             }).ToList();
@@ -114,21 +110,20 @@ namespace Homunity_Web_Api.Controllers
             return Ok(result);
         }
 
-
-        // =============================================
-        // GET: api/Booking/owner/{ownerId}
-        // =============================================
         [HttpGet("owner/{ownerId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetBookingsByOwner(int ownerId)
         {
-            if (ownerId <= 0) return BadRequest(new { message = "Invalid OwnerId" });
+            if (ownerId <= 0)
+                return Problem(detail: "Invalid OwnerId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (ownerId != CurrentUserId && !IsAdmin) return Forbid();
 
             DataTable bookings = clsBooking.GetBookingsByOwnerID(ownerId);
             if (bookings.Rows.Count == 0)
-                return NotFound(new { message = $"No bookings for owner {ownerId}" });
+                return Problem(detail: $"No bookings for owner {ownerId}.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-
             var result = bookings.AsEnumerable().Select(row => new
             {
                 bookingId = Convert.ToInt32(row["BookingId"]),
@@ -141,31 +136,27 @@ namespace Homunity_Web_Api.Controllers
                 {
                     propertyId = Convert.ToInt32(row["PropertyId"]),
                     title = row["PropertyTitle"].ToString(),
-                    address = row["PropertyAddress"].ToString(),   // ✅ بدل location
+                    address = row["PropertyAddress"].ToString(),
                     imageUrl = row["ImagePath"] == DBNull.Value ? null : $"{baseUrl}/{row["ImagePath"]}"
                 }
             }).ToList();
 
-            return Ok(new
-            {
-                message = "Bookings retrieved successfully",
-                count = result.Count,
-                bookings = result
-            });
+            return Ok(new { message = "Bookings retrieved successfully", count = result.Count, bookings = result });
         }
 
-
-
-        // =============================================
-        // GET: api/Booking/property/{propertyId}
-        // =============================================
         [HttpGet("property/{propertyId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult GetBookingsByProperty(int propertyId)
         {
-            if (propertyId <= 0) return BadRequest(new { message = "Invalid PropertyId" });
+            if (propertyId <= 0)
+                return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+
+            var property = clsProperties.FindByID(propertyId);
+            if (property == null)
+                return Problem(detail: "Property not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            if (property.OwnerID != CurrentUserId && !IsAdmin) return Forbid();
 
             DataTable bookings = clsBooking.GetBookingsByPropertyID(propertyId);
-
             if (bookings.Rows.Count == 0)
                 return Ok(new { message = "No bookings found", bookings = new List<object>() });
 
@@ -173,92 +164,59 @@ namespace Homunity_Web_Api.Controllers
             {
                 bookingId = Convert.ToInt32(row["BookingId"]),
                 studentName = row["StudentName"].ToString(),
-                checkInDate = row["CreatedAt"] != DBNull.Value
-                              ? Convert.ToDateTime(row["CreatedAt"]).ToString("yyyy-MM-dd") : null,
+                checkInDate = row["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(row["CreatedAt"]).ToString("yyyy-MM-dd") : null,
                 statusName = row["StatusName"].ToString()
             }).ToList();
 
-            return Ok(new
-            {
-                message = "Bookings retrieved successfully",
-                count = result.Count,
-                bookings = result
-            });
+            return Ok(new { message = "Bookings retrieved successfully", count = result.Count, bookings = result });
         }
 
-
-
-
-
-        // =============================================
-        // PUT: api/Booking/{id}/confirm
-        // Owner يأكد الحجز → Transaction تشتغل
-        // =============================================
         [HttpPut("{id}/confirm")]
+        [Authorize(Roles = "Owner,Admin")]
         public IActionResult ConfirmBooking(int id, int OwnerId)
         {
-            if (id <= 0) return BadRequest(new { message = "Invalid BookingId" });
-            if (OwnerId <= 0) return BadRequest(new { message = "Invalid OwnerId" });
+            if (id <= 0)
+                return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (OwnerId <= 0)
+                return Problem(detail: "Invalid OwnerId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (OwnerId != CurrentUserId && !IsAdmin) return Forbid();
 
             clsBooking booking = clsBooking.Find(id);
-            if (booking == null) return NotFound(new { message = $"Booking {id} not found" });
+            if (booking == null)
+                return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             if (booking.Confirm(OwnerId))
             {
-                return Ok(new
-                {
-                    bookingId = booking.BookingId,
-                    statusId = booking.StatusId,
-                    confirmedAt = booking.ConfirmedAt,
-                    message = "Booking confirmed successfully."
-                });
+                return Ok(new { bookingId = booking.BookingId, statusId = booking.StatusId, confirmedAt = booking.ConfirmedAt, message = "Booking confirmed successfully." });
             }
 
-            return StatusCode(500, new { message = "Error confirming booking." });
+            return Problem(detail: "Error confirming booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
         }
 
-
-
-
-
-        // =============================================
-        // PUT: api/Booking/{id}/cancel
-        // =============================================
         [HttpPut("{id}/cancel")]
         public IActionResult CancelBooking(int id)
         {
-            if (id <= 0) return BadRequest(new { message = "Invalid BookingId" });
+            if (id <= 0)
+                return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
             clsBooking booking = clsBooking.Find(id);
-            if (booking == null) return NotFound(new { message = $"Booking {id} not found" });
+            if (booking == null)
+                return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+
+            if (booking.StudentId != CurrentUserId && !IsAdmin) return Forbid();
 
             if (booking.Cancel())
             {
-                return Ok(new
-                {
-                    bookingId = booking.BookingId,
-                    statusId = booking.StatusId,
-                    message = "Booking cancelled successfully"
-                });
+                return Ok(new { bookingId = booking.BookingId, statusId = booking.StatusId, message = "Booking cancelled successfully" });
             }
 
-            return StatusCode(500, new { message = "Cannot cancel a confirmed or already cancelled booking." });
+            return Problem(detail: "Cannot cancel a confirmed or already cancelled booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
         }
 
-
-
-
-        // =============================================
-        // DELETE: api/Booking/{id}
-        // Not Supported - نحول لـ Cancel بدلاً منه
-        // =============================================
         [HttpDelete("{id}")]
         public IActionResult DeleteBooking(int id)
         {
-            return BadRequest(new { message = "Use PUT /api/Booking/{id}/cancel instead." });
+            return Problem(detail: "Use PUT /api/Booking/{id}/cancel instead.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
         }
-
-
-       
     }
 }

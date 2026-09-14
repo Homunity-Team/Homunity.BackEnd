@@ -1,16 +1,16 @@
 ﻿using Homunity_Buisness_Logic;
+using Homunity_Business_Logic;// لو موجود بالفعل
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Homunity_Business_Logic;// لو موجود بالفعل
-
+using Microsoft.AspNetCore.Authorization;
 
 namespace Homunity_Web_Api.Controllers
 {
     [Route("api/AdminActions")]
     [ApiController]
-    public class AdminActionsController : ControllerBase
+    [Authorize(Roles = "Admin")]   // ← جديد: كل الكنترولر Admin بس
+    public class AdminActionsController : AuthorizedControllerBase   // ← بدل ControllerBase
     {
-        
 
         // =============================================
         // PUT: api/admin/properties/{id}/approve

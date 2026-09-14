@@ -7,7 +7,7 @@ using System.Transactions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Homunity_Buisness_Logic
-{
+{ 
     public class clsProperties
     {
         public enum enMode { AddNew = 0, Update = 1 }

@@ -1,46 +1,55 @@
 ﻿using Homunity_Buisness_Logic;
 using Homunity_Business_Logic;
 using Homunity_Shared_DTOs;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Homunity_Web_Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ChatController : ControllerBase
+    [Authorize(Roles = "Student")]
+    public class ChatController : AuthorizedControllerBase
     {
         private readonly clsChat _chat;
-
-        public ChatController(clsChat chat)
-        {
-            _chat = chat;
-        }
+        public ChatController(clsChat chat) => _chat = chat;
 
         [HttpPost("message")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> SendMessage([FromBody] ChatRequest request)
         {
             if (request.StudentId <= 0 || string.IsNullOrWhiteSpace(request.Message))
-                return BadRequest(new { message = "StudentId and Message are required." });
-
+                return Problem(detail: "StudentId and Message are required.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
             if (request.Message.Length > 500)
-                return BadRequest(new { message = "Message too long. Max 500 characters." });
+                return Problem(detail: "Message too long. Max 500 characters.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (request.StudentId != CurrentUserId) return Forbid();
 
             var response = await _chat.SendMessage(request.StudentId, request.Message);
             return Ok(response);
         }
 
         [HttpGet("history/{studentId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult GetHistory(int studentId)
         {
-            if (studentId <= 0) return BadRequest(new { message = "Invalid StudentId." });
+            if (studentId <= 0)
+                return Problem(detail: "Invalid StudentId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (studentId != CurrentUserId) return Forbid();
+
             var history = _chat.GetHistory(studentId);
             return Ok(new { studentId, messages = history });
         }
 
         [HttpDelete("clear/{studentId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult ClearHistory(int studentId)
         {
-            if (studentId <= 0) return BadRequest(new { message = "Invalid StudentId." });
+            if (studentId <= 0)
+                return Problem(detail: "Invalid StudentId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (studentId != CurrentUserId) return Forbid();
+
             bool result = _chat.ClearHistory(studentId);
             return Ok(new { success = result, message = result ? "History cleared." : "Error clearing history." });
         }

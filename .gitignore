@@ -28,6 +28,11 @@ bld/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
+
+# User/environment-specific application configuration
+appsettings.Production.json
+**/secrets.json
+
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
@@ -48,6 +53,9 @@ nunit-*.xml
 [Rr]eleasePS/
 dlldata.c
 
+# Visual Studio 2015/2017 cache/options directory
+# .vs/ is covered above.
+
 # .NET Core
 project.lock.json
 project.fragment.lock.json
@@ -58,13 +66,8 @@ ScaffoldingReadMe.txt
 
 # NuGet Packages
 *.nupkg
-# The packages folder can be ignored because of Package Restore
 **/[Pp]ackages/*
-# except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
-# Uncomment if necessary however generally it will be regenerated when needed
-#!**/[Pp]ackages/repositories.config
-# NuGet v3's project.json files produces more ignorable files
 *.nuget.props
 *.nuget.targets
 
@@ -86,9 +89,7 @@ _pkginfo.txt
 *.appxupload
 
 # Visual Studio cache files
-# files ending in .cache can be ignored
 *.[Cc]ache
-# but keep track of directories ending in .cache
 !?*.[Cc]ache/
 
 # Others
@@ -101,27 +102,6 @@ ClientBin/
 *.pfx
 *.publishsettings
 orleans.codegen.cs
-
-# Including strong name files can present a security risk 
-# (https://github.com/github/gitignore/pull/2483#issue-259490424)
-#*.snk
-
-# Since there are multiple workflows, uncomment next line to ignore bower_components
-# (https://github.com/github/gitignore/pull/1529#issuecomment-104372622)
-#bower_components/
-
-# RIA/Silverlight projects
-Generated_Code/
-
-# Backup & report files from converting an old project file
-# to a newer Visual Studio version. Backup files are not needed,
-# because we have git ;-)
-_UpgradeReport_Files/
-Backup*/
-UpgradeLog*.XML
-UpgradeLog*.htm
-ServiceFabricBackup/
-*.rptproj.bak
 
 # SQL Server files
 *.mdf
@@ -153,7 +133,7 @@ node_modules/
 # Visual Studio 6 workspace options file
 *.opt
 
-# Visual Studio 6 auto-generated workspace file (contains which files were open etc.)
+# Visual Studio 6 auto-generated workspace file
 *.vbw
 
 # Visual Studio LightSwitch build output
@@ -168,7 +148,7 @@ node_modules/
 .paket/paket.exe
 paket-files/
 
-# FAKE - F# Make
+# FAKE - F#
 .fake/
 
 # CodeRush personal settings
@@ -178,7 +158,7 @@ paket-files/
 __pycache__/
 *.pyc
 
-# Cake - Uncomment if you are using it
+# Cake
 # tools/**
 # !tools/packages.config
 
@@ -197,7 +177,7 @@ __pycache__/
 # OpenCover UI analysis results
 OpenCover/
 
-# Azure Stream Analytics local run output 
+# Azure Stream Analytics local run output
 ASALocalRun/
 
 # MSBuild Binary and Structured Log
@@ -206,7 +186,7 @@ ASALocalRun/
 # NVidia Nsight GPU debugger configuration file
 *.nvuser
 
-# MFractors (Xamarin productivity tool) working folder 
+# MFractors (Xamarin) working folder
 .mfractor/
 
 # Local History for Visual Studio

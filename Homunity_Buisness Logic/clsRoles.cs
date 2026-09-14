@@ -1,8 +1,8 @@
 ﻿using Homunity_Data_Access;
 using System.Data;
-
+    
 namespace Homunity_Buisness_Logic
-{
+{   
     public class clsRoles
     {
         public int RoleId { get; set; }
@@ -13,4 +13,4 @@ namespace Homunity_Buisness_Logic
             return clsRolesData.GetAllRoles();
         }
     }
-}
+}   

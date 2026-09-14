@@ -130,8 +130,8 @@ namespace Homunity_Buisness_Logic
                         distance_km = property.DistanceKm
                     }
                 },
-                Images = images?.Select(img => new { imageId = img.ImageId, imageUrl = $"{baseUrl}/{img.ImagePath}" }).ToList(),
-                Video = video == null ? null : new { videoId = video.VideoId, videoUrl = $"{baseUrl}/{video.VideoPath}" },
+                Images =   images?.Select(img => new { imageId = img.ImageId, imageUrl = $"{baseUrl}/{img.ImagePath}" }).ToList(),
+                Video  = video == null ? null : new { videoId = video.VideoId, videoUrl = $"{baseUrl}/{video.VideoPath}" },
                 Services = services?.Select(s => new { serviceId = s.ServiceId, name = s.Name, icon = s.Icon }).ToList()
             };
         }
