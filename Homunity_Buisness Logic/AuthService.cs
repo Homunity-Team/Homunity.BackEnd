@@ -1,5 +1,4 @@
-﻿// AuthService.cs — الجزء المعدّل بس
-using Homunity_Buisness_Logic;
+﻿using Homunity_Buisness_Logic;
 using Homunity_Data_Access.Repositories;
 using Homunity_Shared_DTOs.Users;
 using Microsoft.Extensions.Logging;
@@ -28,10 +27,18 @@ public class AuthService : IAuthService
             return (false, null, null, null);
         }
 
-        if (PasswordHasher.Hash(password) != entity.PasswordHash)
+        if (!PasswordHasher.Verify(password, entity.PasswordHash))
         {
             _logger.LogWarning("Login failed: invalid password for UserId {UserId}", entity.UserId);
             return (false, null, null, null);
+        }
+
+        // Sprint 10: ترحيل تلقائي — لو الباسورد لسه SHA256 قديم، حدّثه لـBCrypt فورًا
+        if (PasswordHasher.NeedsRehash(entity.PasswordHash))
+        {
+            var newHash = PasswordHasher.Hash(password);
+            await _repo.UpdatePasswordHashAsync(entity.UserId, newHash);
+            _logger.LogInformation("Password migrated to BCrypt for UserId {UserId}", entity.UserId);
         }
 
         var roleName = entity.Role?.Name ?? "";

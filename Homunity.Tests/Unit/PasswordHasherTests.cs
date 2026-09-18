@@ -6,7 +6,7 @@ namespace Homunity.Tests.Unit
     public class PasswordHasherTests
     {
         [Fact]
-        public void Hash_SamePassword_ReturnsSameHash()
+        public void Hash_SamePassword_CanBeVerified()
         {
             // Arrange
             string password = "Test@123";
@@ -16,9 +16,10 @@ namespace Homunity.Tests.Unit
             string hash2 = PasswordHasher.Hash(password);
 
             // Assert
-            Assert.Equal(hash1, hash2);
+            Assert.NotEqual(hash1, hash2);
+            Assert.True(PasswordHasher.Verify(password, hash1));
+            Assert.True(PasswordHasher.Verify(password, hash2));
         }
-
         [Fact]
         public void Hash_DifferentPasswords_ReturnDifferentHashes()
         {

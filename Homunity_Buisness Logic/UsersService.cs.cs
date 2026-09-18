@@ -11,37 +11,23 @@ namespace Homunity_Buisness_Logic
         private readonly IUserRepository _repo;
         private readonly ILogger<UsersService> _logger;
 
-        public UsersService(
-            IUserRepository repo,
-            ILogger<UsersService> logger)
+        public UsersService(IUserRepository repo,ILogger<UsersService> logger)
         {
             _repo = repo;
             _logger = logger;
         }
 
-        public async Task<(bool success, bool phoneConflict, UserResponse user)> RegisterAsync(
-            RegisterUserRequest request)
+        public async Task<(bool success, bool phoneConflict, UserResponse user)> RegisterAsync(RegisterUserRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.FirstName))
-                return (false, false, null);
-
-            if (string.IsNullOrWhiteSpace(request.LastName))
-                return (false, false, null);
-
-            if (string.IsNullOrWhiteSpace(request.Phone))
-                return (false, false, null);
-
-            if (string.IsNullOrWhiteSpace(request.Password))
-                return (false, false, null);
-
-            if (request.Password.Length < 4)
-                return (false, false, null);
+            if (string.IsNullOrWhiteSpace(request.FirstName)) return (false, false, null);
+            if (string.IsNullOrWhiteSpace(request.LastName)) return (false, false, null);
+            if (string.IsNullOrWhiteSpace(request.Phone)) return (false, false, null);
+            if (string.IsNullOrWhiteSpace(request.Password)) return (false, false, null);
+            if (request.Password.Length < 4) return (false, false, null);
 
             if (await _repo.PhoneExistsAsync(request.Phone))
             {
-                _logger.LogWarning(
-                    "Register failed: phone already exists");
-
+                _logger.LogWarning("Register failed: phone already exists");
                 return (false, true, null);
             }
 
@@ -50,21 +36,17 @@ namespace Homunity_Buisness_Logic
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 Phone = request.Phone,
-                PasswordHash = PasswordHasher.Hash(request.Password),
+                PasswordHash = PasswordHasher.Hash(request.Password), // ← بقت BCrypt تلقائيًا
                 RoleId = request.RoleId,
                 IsActive = true
             };
 
             entity.UserId = await _repo.AddAsync(entity);
 
-            _logger.LogInformation(
-                "New user registered: UserId {UserId}, RoleId {RoleId}",
-                entity.UserId,
-                entity.RoleId);
+            _logger.LogInformation("New user registered: UserId {UserId}, RoleId {RoleId}", entity.UserId, entity.RoleId);
 
             return (true, false, MapToResponse(entity));
         }
-
         public async Task<UserResponse> LoginAsync(string phone, string password)
         {
             var user = await _repo.GetByPhoneAsync(phone);

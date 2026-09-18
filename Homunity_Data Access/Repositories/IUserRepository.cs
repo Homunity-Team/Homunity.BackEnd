@@ -15,5 +15,7 @@ namespace Homunity_Data_Access.Repositories
         Task<int> AddAsync(UserEntity user);
         Task<bool> UpdateStatusAsync(int userId, bool isActive);
         Task<bool> DeleteAsync(int userId);
+        Task<bool> UpdatePasswordHashAsync(int userId, string newHash);
+
     }
 }

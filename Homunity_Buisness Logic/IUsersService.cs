@@ -17,5 +17,6 @@ namespace Homunity_Buisness_Logic
         Task<UserResponse> GetProfileAsync(int userId);
         Task<bool> UpdateStatusAsync(int userId, bool isActive);
         Task<bool> DeleteAsync(int userId);
+ 
     }
 }

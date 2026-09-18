@@ -44,5 +44,14 @@ namespace Homunity_Data_Access.Repositories
             _db.Users.Remove(user);
             return await _db.SaveChangesAsync() > 0;
         }
+
+
+        public async Task<bool> UpdatePasswordHashAsync(int userId, string newHash)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null) return false;
+            user.PasswordHash = newHash;
+            return await _db.SaveChangesAsync() > 0;
+        }
     }
 }
