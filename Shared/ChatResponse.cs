@@ -1,0 +1,14 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Homunity_Shared_DTOs
+{
+    public class ChatResponse
+    {
+        public string Reply { get; set; }
+        public List<PropertySuggestion> Suggestions { get; set; } = new();
+    }
+}
