@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -32,7 +33,7 @@ namespace Homunity.Tests.Integration
             // يتأكد أن AuthController → IAuthService → AuthService (بعد تغليفها بالـnamespace)
             // لسه متصل بشكل صحيح عبر DI، ويرد بـ400 المتوقع لطلب ناقص، لا بخطأ تسجيل DI (500).
             var client = _factory.CreateClient();
-            var response = await client.PostAsync("/api/Auth/Login?phone=&password=", null);
+            var response = await client.PostAsJsonAsync("/api/Auth/Login", new { phone = "", password = "" });
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 

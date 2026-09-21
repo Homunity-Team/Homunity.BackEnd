@@ -165,14 +165,19 @@ namespace Homunity_Data_Access.Repositories
             }).ToList();
         }
 
+        // Active booking = Booked (3) OR Confirmed (5) — prevents double booking
         public Task<bool> IsPropertyAlreadyBookedAsync(int propertyId) =>
-            _db.Bookings.AsNoTracking().AnyAsync(b => b.PropertyId == propertyId && b.StatusId == 3);
+            _db.Bookings.AsNoTracking().AnyAsync(b =>
+                b.PropertyId == propertyId && (b.StatusId == 3 || b.StatusId == 5));
 
         public Task<bool> IsStudentAlreadyRequestedPropertyAsync(int studentId, int propertyId) =>
             _db.Bookings.AsNoTracking().AnyAsync(b => b.StudentId == studentId && b.PropertyId == propertyId && b.StatusId == 2);
 
         public Task<bool> IsPropertyExistAsync(int propertyId) =>
             _db.Properties.AsNoTracking().AnyAsync(p => p.PropertyId == propertyId);
+
+        public Task<bool> IsPropertyApprovedAsync(int propertyId) =>
+            _db.Properties.AsNoTracking().AnyAsync(p => p.PropertyId == propertyId && p.StatusId == 2);
 
         public Task<bool> IsUserInRoleAsync(int userId, string roleName) =>
             _db.Users.AsNoTracking().AnyAsync(u => u.UserId == userId && u.Role.Name == roleName);

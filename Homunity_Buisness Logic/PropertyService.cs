@@ -1,5 +1,4 @@
-﻿using Homunity_Business_Logic;
-using Homunity_Data_Access.Entities;
+﻿using Homunity_Data_Access.Entities;
 using Homunity_Data_Access.Repositories;
 using Homunity_Data_Access.Repositories.Models;
 using Homunity_Shared_DTOs;
@@ -564,5 +563,20 @@ namespace Homunity_Buisness_Logic
 
             return true;
         }
+        public Task<List<PropertyImageProjection>> GetImagesByPropertyIdAsync(int propertyId)
+            => _propertyRepository.GetImagesByPropertyIdAsync(propertyId);
+
+        public Task<PropertyImageProjection?> FindImageByIdAsync(int imageId)
+            => _propertyRepository.FindImageByIdAsync(imageId);
+
+        public Task<int> CountImagesAsync(int propertyId)
+            => _propertyRepository.CountImagesAsync(propertyId);
+
+        public Task<PropertyVideoProjection?> GetVideoByPropertyIdAsync(int propertyId)
+            => _propertyRepository.GetVideoByPropertyIdAsync(propertyId);
+
+        public Task<PropertyVideoProjection?> FindVideoByIdAsync(int videoId)
+            => _propertyRepository.FindVideoByIdAsync(videoId);
+
     }
 }

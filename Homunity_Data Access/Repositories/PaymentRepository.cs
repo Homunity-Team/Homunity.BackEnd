@@ -116,6 +116,10 @@ namespace Homunity_Data_Access.Repositories
             _db.Payments.AsNoTracking().Where(p => p.BookingId == bookingId)
                 .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
 
+        public Task<PaymentEntity?> GetPaymentByMockOrderIdAsync(string mockOrderId) =>
+            _db.Payments.AsNoTracking().FirstOrDefaultAsync(p => p.MockOrderId == mockOrderId);
+
+
         public async Task<bool> UpdateBookingStatusToBookedAsync(int bookingId)
         {
             var booking = await _db.Bookings.FirstOrDefaultAsync(b => b.BookingId == bookingId && b.StatusId == 5);

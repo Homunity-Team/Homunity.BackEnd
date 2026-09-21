@@ -1,16 +1,18 @@
-﻿using Homunity_Data_Access.Repositories;
+using Homunity_Data_Access.Repositories;
 using Homunity_Data_Access.Repositories.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Homunity_Buisness_Logic
 {
     public class BookingService : IBookingService
     {
-        private const int STATUS_INPROCESS = 2, STATUS_BOOKED = 3, STATUS_CANCELLED = 4, STATUS_CONFIRMED = 5;
+        private const int STATUS_INPROCESS = 2;
+        private const int STATUS_BOOKED = 3;
+        private const int STATUS_CANCELLED = 4;
+        private const int STATUS_CONFIRMED = 5;
+        private const int PROPERTY_STATUS_APPROVED = 2;
 
         private readonly IBookingRepository _repo;
         public BookingService(IBookingRepository repo) => _repo = repo;
@@ -18,6 +20,7 @@ namespace Homunity_Buisness_Logic
         public async Task<BookingCreateResult> CreateAsync(int propertyId, int studentId)
         {
             if (!await _repo.IsPropertyExistAsync(propertyId)) return BookingCreateResult.Fail();
+            if (!await _repo.IsPropertyApprovedAsync(propertyId)) return BookingCreateResult.Fail();
             if (!await _repo.IsUserInRoleAsync(studentId, "Student")) return BookingCreateResult.Fail();
             if (!await _repo.IsBookingStatusValidAsync(STATUS_INPROCESS)) return BookingCreateResult.Fail();
             if (await _repo.IsPropertyAlreadyBookedAsync(propertyId)) return BookingCreateResult.Fail();
@@ -33,7 +36,7 @@ namespace Homunity_Buisness_Logic
                 PropertyId = propertyId,
                 StudentId = studentId,
                 StatusId = STATUS_INPROCESS,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
         }
 
@@ -48,10 +51,12 @@ namespace Homunity_Buisness_Logic
             if (booking == null) return BookingActionResult.NotFound();
 
             if (!await _repo.IsUserInRoleAsync(ownerId, "Owner")) return BookingActionResult.Fail();
+            // Ownership: acting owner must own the property on this booking
+            if (booking.PropertyOwnerId != ownerId) return BookingActionResult.Fail();
             if (booking.StatusId != STATUS_INPROCESS) return BookingActionResult.Fail();
             if (await _repo.IsPropertyAlreadyBookedAsync(booking.PropertyId)) return BookingActionResult.Fail();
 
-            var confirmedAt = DateTime.Now;
+            var confirmedAt = DateTime.UtcNow;
             var ok = await _repo.ConfirmWithTransactionAsync(bookingId, booking.PropertyId, confirmedAt);
             return ok ? BookingActionResult.Ok(bookingId, STATUS_CONFIRMED, confirmedAt) : BookingActionResult.Fail();
         }
@@ -61,6 +66,7 @@ namespace Homunity_Buisness_Logic
             var booking = await _repo.FindAsync(bookingId);
             if (booking == null) return BookingActionResult.NotFound();
 
+            // Cannot cancel when already Booked (paid) or already Cancelled
             if (booking.StatusId == STATUS_BOOKED || booking.StatusId == STATUS_CANCELLED)
                 return BookingActionResult.Fail();
 

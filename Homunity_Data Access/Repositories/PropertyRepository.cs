@@ -1,4 +1,5 @@
-﻿using Homunity_Data_Access.Data;
+﻿using Homunity_Shared_DTOs.Properties;
+using Homunity_Data_Access.Data;
 using Homunity_Data_Access.Entities;
 using Homunity_Data_Access.Repositories.Models;
 using Microsoft.EntityFrameworkCore;

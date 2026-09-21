@@ -1,19 +1,33 @@
-﻿using Homunity_Buisness_Logic;
+using Homunity_Buisness_Logic;
 using Homunity_Data_Access.Repositories.Models;
 using Homunity_Shared_DTOs.AdminActions;
 using Homunity_Web_Api.Controllers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Security.Claims;
+using Xunit;
 
 namespace Homunity.Tests.Unit
 {
     public class AdminActionsControllerMappingTests
     {
+        private static AdminActionsController CreateController(IAdminActionsService service, int adminUserId = 5)
+        {
+            var controller = new AdminActionsController(service);
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, adminUserId.ToString()),
+                new Claim(ClaimTypes.Role, "Admin")
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = user }
+            };
+            return controller;
+        }
+
         [Fact]
         public async Task ApproveProperty_Success_ReturnsAdminActionResponseWithApprovedAction()
         {
@@ -21,8 +35,8 @@ namespace Homunity.Tests.Unit
             service.Setup(s => s.GetPropertyDetailAsync(1)).ReturnsAsync(new AdminPropertyDetail { PropertyId = 1, StatusId = 1 });
             service.Setup(s => s.ApproveAsync(1, 5)).ReturnsAsync(true);
 
-            var controller = new AdminActionsController(service.Object);
-            var result = await controller.ApproveProperty(1, 5);
+            var controller = CreateController(service.Object, adminUserId: 5);
+            var result = await controller.ApproveProperty(1);
 
             var okResult = Assert.IsType<OkObjectResult>(result);
             var response = Assert.IsType<AdminActionResponse>(okResult.Value);
@@ -39,8 +53,8 @@ namespace Homunity.Tests.Unit
             service.Setup(s => s.GetPropertyDetailAsync(1)).ReturnsAsync(new AdminPropertyDetail { PropertyId = 1, StatusId = 1 });
             service.Setup(s => s.RejectAsync(1, 5, "Not suitable for students")).ReturnsAsync(true);
 
-            var controller = new AdminActionsController(service.Object);
-            var result = await controller.RejectProperty(1, 5, "Not suitable for students");
+            var controller = CreateController(service.Object, adminUserId: 5);
+            var result = await controller.RejectProperty(1, "Not suitable for students");
 
             var okResult = Assert.IsType<OkObjectResult>(result);
             var response = Assert.IsType<AdminActionResponse>(okResult.Value);
@@ -54,8 +68,8 @@ namespace Homunity.Tests.Unit
             var service = new Mock<IAdminActionsService>();
             service.Setup(s => s.GetPropertyDetailAsync(1)).ReturnsAsync(new AdminPropertyDetail { PropertyId = 1, StatusId = 2 });
 
-            var controller = new AdminActionsController(service.Object);
-            var result = await controller.ApproveProperty(1, 5);
+            var controller = CreateController(service.Object, adminUserId: 5);
+            var result = await controller.ApproveProperty(1);
 
             var objectResult = Assert.IsType<ObjectResult>(result);
             Assert.Equal(400, objectResult.StatusCode);
@@ -67,8 +81,8 @@ namespace Homunity.Tests.Unit
             var service = new Mock<IAdminActionsService>();
             service.Setup(s => s.GetPropertyDetailAsync(1)).ReturnsAsync((AdminPropertyDetail?)null);
 
-            var controller = new AdminActionsController(service.Object);
-            var result = await controller.RejectProperty(1, 5, "some valid reason here");
+            var controller = CreateController(service.Object, adminUserId: 5);
+            var result = await controller.RejectProperty(1, "some valid reason here");
 
             var objectResult = Assert.IsType<ObjectResult>(result);
             Assert.Equal(404, objectResult.StatusCode);

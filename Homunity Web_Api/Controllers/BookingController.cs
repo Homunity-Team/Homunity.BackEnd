@@ -1,5 +1,4 @@
 ﻿using Homunity_Buisness_Logic;
-using Homunity_Data_Access.Repositories;
 using Homunity_Shared_DTOs.Bookings;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +11,12 @@ namespace Homunity_Web_Api.Controllers
     public class BookingController : AuthorizedControllerBase
     {
         private readonly IBookingService _bookingService;
-        private readonly IPropertyRepository _propertyRepo;
+        private readonly IPropertyService _propertyService;
 
-        public BookingController(IBookingService bookingService, IPropertyRepository propertyRepo)
+        public BookingController(IBookingService bookingService, IPropertyService propertyService)
         {
             _bookingService = bookingService;
-            _propertyRepo = propertyRepo;
+            _propertyService = propertyService;
         }
 
         [HttpPost]
@@ -153,9 +152,9 @@ namespace Homunity_Web_Api.Controllers
         {
             if (propertyId <= 0) return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            var ownership = await _propertyRepo.GetOwnershipAsync(propertyId);
+            var ownership = await _propertyService.GetOwnershipAsync(propertyId);
             if (ownership == null) return Problem(detail: "Property not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
-            if (!await IsAuthorizedForResourceAsync(ownership.Value.OwnerId)) return Forbid();
+            if (!await IsAuthorizedForResourceAsync(ownership.OwnerId)) return Forbid();
 
             var bookings = await _bookingService.GetByPropertyIdAsync(propertyId);
             if (bookings.Count == 0) return Ok(new { message = "No bookings found", bookings = new List<BookingByPropertyItemResponse>() });
@@ -175,9 +174,10 @@ namespace Homunity_Web_Api.Controllers
         [Authorize(Roles = "Owner,Admin")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(BookingConfirmedResponse))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> ConfirmBooking(int id, int OwnerId)
+        public async Task<IActionResult> ConfirmBooking(int id)
         {
             if (id <= 0) return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            var OwnerId = CurrentUserId;
             if (OwnerId <= 0) return Problem(detail: "Invalid OwnerId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
             if (!await IsAuthorizedForResourceAsync(OwnerId)) return Forbid();
 

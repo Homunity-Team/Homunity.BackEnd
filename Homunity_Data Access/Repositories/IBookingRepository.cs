@@ -19,6 +19,7 @@ namespace Homunity_Data_Access.Repositories
         Task<bool> IsPropertyAlreadyBookedAsync(int propertyId);
         Task<bool> IsStudentAlreadyRequestedPropertyAsync(int studentId, int propertyId);
         Task<bool> IsPropertyExistAsync(int propertyId);
+        Task<bool> IsPropertyApprovedAsync(int propertyId);
         Task<bool> IsUserInRoleAsync(int userId, string roleName);
         Task<bool> IsBookingStatusValidAsync(int statusId);
     }

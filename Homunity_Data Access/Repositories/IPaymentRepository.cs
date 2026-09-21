@@ -16,6 +16,7 @@ namespace Homunity_Data_Access.Repositories
         Task<int> CreatePaymentAsync(int bookingId, int studentId, int ownerId, int propertyId, decimal amount, string mockOrderId);
         Task<bool> UpdatePaymentStatusAsync(string mockOrderId, string status);
         Task<PaymentEntity?> GetPaymentByBookingIdAsync(int bookingId);
+        Task<PaymentEntity?> GetPaymentByMockOrderIdAsync(string mockOrderId);
         Task<bool> UpdateBookingStatusToBookedAsync(int bookingId);
     }
 

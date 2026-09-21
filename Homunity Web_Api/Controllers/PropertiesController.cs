@@ -1,8 +1,6 @@
 ﻿using Homunity_Buisness_Logic;
-using Homunity_Business_Logic;
-using Homunity_Data_Access.Repositories;
-using Homunity_Data_Access.Repositories.Models;
 using Homunity_Shared_DTOs;
+using Homunity_Shared_DTOs.Properties;
 using Homunity_Web_Api.Contracts;
 using Homunity_Web_Api.Properties;
 using Microsoft.AspNetCore.Authorization;
@@ -21,20 +19,17 @@ namespace Homunity_Web_Api.Controllers
     {
         private readonly IWebHostEnvironment _environment;
         private readonly IPropertyService _propertyService;
-        private readonly IPropertyRepository _propertyRepository;
         private readonly IUniversityService _universityService;
         private readonly ILogger<PropertiesController> _logger;
 
         public PropertiesController(
             IWebHostEnvironment environment,
             IPropertyService propertyService,
-            IPropertyRepository propertyRepository,
             IUniversityService universityService,
             ILogger<PropertiesController> logger)
         {
             _environment = environment;
             _propertyService = propertyService;
-            _propertyRepository = propertyRepository;
             _universityService = universityService;
             _logger = logger;
         }
@@ -349,7 +344,7 @@ namespace Homunity_Web_Api.Controllers
 
             // Get current image count through repository
             int currentCount =
-                await _propertyRepository.CountImagesAsync(
+                await _propertyService.CountImagesAsync(
                     request.PropertyID);
 
             int finalCount =
@@ -377,7 +372,7 @@ namespace Homunity_Web_Api.Controllers
 
             // Get existing images through repository
             var allImages =
-                await _propertyRepository.GetImagesByPropertyIdAsync(
+                await _propertyService.GetImagesByPropertyIdAsync(
                     request.PropertyID);
 
             var imagesToDeleteFromDisk =
@@ -624,6 +619,17 @@ namespace Homunity_Web_Api.Controllers
                     title: "Not Found");
             }
 
+            // Non-Approved (Pending/Rejected) visible only to owner or Admin
+            const int STATUS_APPROVED = 2;
+            if (result.PropertyStatusID != STATUS_APPROVED)
+            {
+                if (!IsAdmin && result.OwnerID != CurrentUserId)
+                    return Problem(
+                        detail: $"Property {id} not found.",
+                        statusCode: StatusCodes.Status404NotFound,
+                        title: "Not Found");
+            }
+
             return Ok(new
             {
                 message = "Found",
@@ -649,6 +655,9 @@ namespace Homunity_Web_Api.Controllers
                     statusCode: StatusCodes.Status400BadRequest,
                     title: "Bad Request");
             }
+
+            if (!await IsAuthorizedForResourceAsync(ownerId))
+                return Forbid();
 
             var query = new PropertyListQuery
             {

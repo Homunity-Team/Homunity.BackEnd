@@ -1,4 +1,5 @@
-﻿using Homunity_Data_Access.Entities;
+﻿using Homunity_Shared_DTOs.Properties;
+using Homunity_Data_Access.Entities;
 using Homunity_Data_Access.Repositories.Models;
 using System;
 using System.Collections.Generic;

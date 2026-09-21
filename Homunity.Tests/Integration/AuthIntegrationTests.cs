@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
+using System.Net.Http.Json;
 using Xunit;
 
 namespace Homunity.Tests.Integration
@@ -18,15 +19,12 @@ namespace Homunity.Tests.Integration
         [Fact]
         public async Task Login_WithMissingCredentials_Returns400()
         {
-            // Arrange
             var client = _factory.CreateClient();
 
-            // Act
-            var response = await client.PostAsync(
-                "/api/Auth/Login?phone=&password=",
-                null);
+            var response = await client.PostAsJsonAsync(
+                "/api/Auth/Login",
+                new { phone = "", password = "" });
 
-            // Assert
             Assert.Equal(
                 HttpStatusCode.BadRequest,
                 response.StatusCode);
@@ -35,15 +33,12 @@ namespace Homunity.Tests.Integration
         [Fact]
         public async Task Login_WithInvalidCredentials_Returns401()
         {
-            // Arrange
             var client = _factory.CreateClient();
 
-            // Act
-            var response = await client.PostAsync(
-                "/api/Auth/Login?phone=01000000000&password=WrongPassword123",
-                null);
+            var response = await client.PostAsJsonAsync(
+                "/api/Auth/Login",
+                new { phone = "01000000000", password = "WrongPassword123" });
 
-            // Assert
             Assert.Equal(
                 HttpStatusCode.Unauthorized,
                 response.StatusCode);
@@ -52,7 +47,6 @@ namespace Homunity.Tests.Integration
         [Fact]
         public async Task Register_WithInvalidBody_Returns400WithValidationErrors()
         {
-            // Arrange
             var client = _factory.CreateClient();
 
             var content = new StringContent(
@@ -60,12 +54,10 @@ namespace Homunity.Tests.Integration
                 System.Text.Encoding.UTF8,
                 "application/json");
 
-            // Act
             var response = await client.PostAsync(
                 "/api/Users/Register",
                 content);
 
-            // Assert
             Assert.Equal(
                 HttpStatusCode.BadRequest,
                 response.StatusCode);

@@ -1,17 +1,19 @@
-﻿using Homunity_Data_Access.Entities;
+using Homunity_Data_Access.Entities;
 using Homunity_Data_Access.Repositories;
 using Homunity_Shared_DTOs.Users;
 using Microsoft.Extensions.Logging;
 
 namespace Homunity_Buisness_Logic
 {
-    // Service محقون (Scoped) — يحل محل الاعتماد الـstatic على clsUsersData
     public class UsersService : IUsersService
     {
+        // Public registration may only create Owner or Student — never Admin.
+        private static readonly HashSet<int> AllowedRegistrationRoleIds = new() { 2, 3 }; // Owner=2, Student=3
+
         private readonly IUserRepository _repo;
         private readonly ILogger<UsersService> _logger;
 
-        public UsersService(IUserRepository repo,ILogger<UsersService> logger)
+        public UsersService(IUserRepository repo, ILogger<UsersService> logger)
         {
             _repo = repo;
             _logger = logger;
@@ -25,6 +27,12 @@ namespace Homunity_Buisness_Logic
             if (string.IsNullOrWhiteSpace(request.Password)) return (false, false, null);
             if (request.Password.Length < 4) return (false, false, null);
 
+            if (!AllowedRegistrationRoleIds.Contains(request.RoleId))
+            {
+                _logger.LogWarning("Register rejected: RoleId {RoleId} is not allowed for public registration", request.RoleId);
+                return (false, false, null);
+            }
+
             if (await _repo.PhoneExistsAsync(request.Phone))
             {
                 _logger.LogWarning("Register failed: phone already exists");
@@ -36,7 +44,7 @@ namespace Homunity_Buisness_Logic
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 Phone = request.Phone,
-                PasswordHash = PasswordHasher.Hash(request.Password), // ← بقت BCrypt تلقائيًا
+                PasswordHash = PasswordHasher.Hash(request.Password),
                 RoleId = request.RoleId,
                 IsActive = true
             };
@@ -47,6 +55,7 @@ namespace Homunity_Buisness_Logic
 
             return (true, false, MapToResponse(entity));
         }
+
         public async Task<UserResponse> LoginAsync(string phone, string password)
         {
             var user = await _repo.GetByPhoneAsync(phone);

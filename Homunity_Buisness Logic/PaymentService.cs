@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Homunity_Data_Access.Repositories;
 using Homunity_Shared_DTOs;
@@ -28,6 +28,13 @@ namespace Homunity_Buisness_Logic
                 return null;
             }
 
+            // Ownership: only the student on the booking may create a payment order
+            if (booking.StudentId != studentId)
+            {
+                _logger.LogWarning("CreateOrder rejected: student {StudentId} does not own booking {BookingId}.", studentId, bookingId);
+                return null;
+            }
+
             if (!booking.StatusName.Equals("Confirmed", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("CreateOrder rejected: booking {BookingId} is not Confirmed (status: {Status}).", bookingId, booking.StatusName);
@@ -36,13 +43,12 @@ namespace Homunity_Buisness_Logic
 
             if (await _repo.HasPendingPaymentAsync(bookingId))
             {
-                // سيناريو فشل متوقَّع: محاولة دفع مكررة على نفس الحجز خلال نافذة زمنية قصيرة.
                 _logger.LogWarning("CreateOrder rejected: duplicate/pending payment already exists for booking {BookingId}.", bookingId);
                 return null;
             }
 
             decimal amount = booking.Price * 2;
-            string mockOrderId = $"HMNT-{bookingId}-{DateTime.Now.Ticks}";
+            string mockOrderId = $"HMNT-{bookingId}-{DateTime.UtcNow.Ticks}";
 
             await _repo.CreatePaymentAsync(bookingId, studentId, booking.OwnerId, booking.PropertyId, amount, mockOrderId);
 
@@ -61,7 +67,7 @@ namespace Homunity_Buisness_Logic
             };
         }
 
-        public async Task<(bool success, string message)> ProcessPaymentAsync(MockProcessRequest req)
+        public async Task<(bool success, string message)> ProcessPaymentAsync(MockProcessRequest req, int actingStudentId)
         {
             if (req == null || string.IsNullOrEmpty(req.MockOrderId))
             {
@@ -69,10 +75,43 @@ namespace Homunity_Buisness_Logic
                 return (false, "Invalid request");
             }
 
-            // البوابة (mock حاليًا، قابلة للاستبدال بمزوّد حقيقي دون أي تغيير في هذه الميثود)
+            var payment = await _repo.GetPaymentByMockOrderIdAsync(req.MockOrderId);
+            if (payment == null)
+            {
+                _logger.LogWarning("ProcessPayment rejected: payment not found for order {OrderId}.", req.MockOrderId);
+                return (false, "Invalid order");
+            }
+
+            if (!string.Equals(payment.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("ProcessPayment rejected: payment {OrderId} is not Pending (status: {Status}).", req.MockOrderId, payment.Status);
+                return (false, "Payment is not pending");
+            }
+
+            if (payment.StudentId != actingStudentId)
+            {
+                _logger.LogWarning("ProcessPayment rejected: student {StudentId} does not own payment order {OrderId}.", actingStudentId, req.MockOrderId);
+                return (false, "Forbidden");
+            }
+
+            var booking = await _repo.GetBookingForPaymentWithLockAsync(payment.BookingId);
+            if (booking == null)
+            {
+                _logger.LogWarning("ProcessPayment rejected: booking {BookingId} not found.", payment.BookingId);
+                return (false, "Booking not found");
+            }
+
+            if (!booking.StatusName.Equals("Confirmed", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("ProcessPayment rejected: booking {BookingId} not confirmed (status: {Status}).", payment.BookingId, booking.StatusName);
+                return (false, "Booking not confirmed");
+            }
+
+            // Charge gateway ONLY after all validations pass
             var gatewayResult = await _gateway.ChargeAsync(new PaymentGatewayRequest
             {
                 OrderId = req.MockOrderId,
+                Amount = payment.Amount,
                 CardNumber = req.CardNumber,
                 CardExpiry = req.CardExpiry,
                 CardCvv = req.CardCvv
@@ -84,26 +123,6 @@ namespace Homunity_Buisness_Logic
                 return (false, gatewayResult.FailureReason ?? "Invalid card");
             }
 
-            var parts = req.MockOrderId.Split('-');
-            if (parts.Length < 2 || !int.TryParse(parts[1], out int bookingId))
-            {
-                _logger.LogWarning("ProcessPayment rejected: malformed MockOrderId {OrderId}.", req.MockOrderId);
-                return (false, "Invalid order");
-            }
-
-            var booking = await _repo.GetBookingForPaymentWithLockAsync(bookingId);
-            if (booking == null)
-            {
-                _logger.LogWarning("ProcessPayment rejected: booking {BookingId} not found.", bookingId);
-                return (false, "Booking not found");
-            }
-
-            if (!booking.StatusName.Equals("Confirmed", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogWarning("ProcessPayment rejected: booking {BookingId} not confirmed (status: {Status}).", bookingId, booking.StatusName);
-                return (false, "Booking not confirmed");
-            }
-
             bool paymentOk = await _repo.UpdatePaymentStatusAsync(req.MockOrderId, "Success");
             if (!paymentOk)
             {
@@ -111,7 +130,7 @@ namespace Homunity_Buisness_Logic
                 return (false, "Payment update failed");
             }
 
-            bool bookingOk = await _repo.UpdateBookingStatusToBookedAsync(bookingId);
+            bool bookingOk = await _repo.UpdateBookingStatusToBookedAsync(payment.BookingId);
             if (!bookingOk)
             {
                 await _repo.UpdatePaymentStatusAsync(req.MockOrderId, "Failed");
@@ -119,15 +138,29 @@ namespace Homunity_Buisness_Logic
                 return (false, "Booking update failed");
             }
 
-            _logger.LogInformation("ProcessPayment succeeded for order {OrderId}, booking {BookingId}.", req.MockOrderId, bookingId);
+            _logger.LogInformation("ProcessPayment succeeded for order {OrderId}, booking {BookingId}.", req.MockOrderId, payment.BookingId);
             return (true, "Payment completed successfully");
         }
 
-        public async Task<PaymentStatusResponse?> GetStatusAsync(int bookingId)
+        public async Task<PaymentStatusResponse?> GetStatusAsync(int bookingId, int actingUserId, bool isOwnerOrAdmin)
         {
-            var payment = await _repo.GetPaymentByBookingIdAsync(bookingId);
             var booking = await _repo.GetBookingForPaymentAsync(bookingId);
             if (booking == null) return null;
+
+            // Student who owns the booking, or owner/admin of the property
+            bool allowed = booking.StudentId == actingUserId
+                           || (isOwnerOrAdmin && booking.OwnerId == actingUserId)
+                           || isOwnerOrAdmin && actingUserId > 0 && booking.OwnerId == actingUserId;
+
+            // Simpler rule: student of booking OR property owner
+            allowed = booking.StudentId == actingUserId || booking.OwnerId == actingUserId;
+            if (!allowed)
+            {
+                _logger.LogWarning("GetStatus forbidden for user {UserId} on booking {BookingId}.", actingUserId, bookingId);
+                return null;
+            }
+
+            var payment = await _repo.GetPaymentByBookingIdAsync(bookingId);
 
             return new PaymentStatusResponse
             {

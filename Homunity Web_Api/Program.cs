@@ -1,5 +1,4 @@
 ﻿using Homunity_Buisness_Logic;
-using Homunity_Business_Logic;
 using Homunity_Data_Access;
 using Homunity_Data_Access.Data;
 using Homunity_Data_Access.Repositories;
@@ -32,7 +31,7 @@ var connectionString = builder.Configuration.GetConnectionString("HomunityDb")
     ?? throw new InvalidOperationException(
         "ConnectionStrings:HomunityDb غير موجودة. اضبطها عبر User Secrets.");
 
-clsDataAccessSettings.Initialize(connectionString);
+// connectionString from configuration (legacy clsDataAccessSettings removed)
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException(
@@ -96,7 +95,7 @@ builder.Services.AddSwaggerGen(c =>
 // =======================
 
 builder.Services.AddDbContext<HomunityDbContext>(options =>
-    options.UseSqlServer(clsDataAccessSettings.ConnectionString));
+    options.UseSqlServer(connectionString));
 
 // =======================
 // Users
@@ -104,6 +103,7 @@ builder.Services.AddDbContext<HomunityDbContext>(options =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUsersService, UsersService>();
+builder.Services.AddScoped<IReferenceDataService, ReferenceDataService>();
 
 // =======================
 // Auth
@@ -247,12 +247,16 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode =
         StatusCodes.Status429TooManyRequests;
 
-    options.AddFixedWindowLimiter("AuthPolicy", opt =>
-    {
-        opt.PermitLimit = 10;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueLimit = 0;
-    });
+    // Partition Auth by client IP so one attacker cannot exhaust the global bucket for everyone
+    options.AddPolicy("AuthPolicy", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 
     options.AddFixedWindowLimiter("UploadPolicy", opt =>
     {

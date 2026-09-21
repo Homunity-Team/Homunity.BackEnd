@@ -1,4 +1,4 @@
-﻿using Homunity_Data_Access.Repositories;
+using Homunity_Buisness_Logic;
 using Homunity_Shared_DTOs.Properties;
 using Homunity_Web_Api.Properties;
 using Microsoft.AspNetCore.Authorization;
@@ -11,21 +11,17 @@ namespace Homunity_Web_Api.Controllers
     [Authorize]
     public class PropertyImagesController : AuthorizedControllerBase
     {
-        private readonly IPropertyRepository _propertyRepository;
-        public PropertyImagesController(IPropertyRepository propertyRepository) => _propertyRepository = propertyRepository;
+        private readonly IPropertyService _propertyService;
+        public PropertyImagesController(IPropertyService propertyService) => _propertyService = propertyService;
 
-        [HttpGet("GetByPropertyId", Name = "GetByPropertyId")]
+        [HttpGet("GetImagesByProperty", Name = "GetImagesByProperty")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetImagesByPropertyId(int propertyId)
+        public async Task<IActionResult> GetImagesByProperty(int propertyId)
         {
             if (propertyId <= 0)
                 return Problem(detail: "Invalid property ID.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            var images = await _propertyRepository.GetImagesByPropertyIdAsync(propertyId);
-            if (images == null || images.Count == 0)
-                return Problem(detail: $"No images found for property {propertyId}.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
-
+            var images = await _propertyService.GetImagesByPropertyIdAsync(propertyId);
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
             var result = images.Select(img => new PropertyImageResponse
             {
@@ -35,7 +31,7 @@ namespace Homunity_Web_Api.Controllers
                 CreatedAt = img.CreatedAt
             }).ToList();
 
-            return Ok(new { propertyId, count = result.Count, images = result });
+            return Ok(result);
         }
 
         [HttpGet("GetImageById", Name = "GetImageById")]
@@ -43,7 +39,7 @@ namespace Homunity_Web_Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetImageById(int id)
         {
-            var image = await _propertyRepository.FindImageByIdAsync(id);
+            var image = await _propertyService.FindImageByIdAsync(id);
             if (image == null)
                 return Problem(detail: "Image not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 

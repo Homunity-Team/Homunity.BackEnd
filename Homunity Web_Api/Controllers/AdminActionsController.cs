@@ -18,10 +18,10 @@ namespace Homunity_Web_Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AdminActionResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> ApproveProperty(int id, int adminId)
+        public async Task<IActionResult> ApproveProperty(int id)
         {
-            if (id <= 0) return Problem(detail: "Invalid property ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (adminId <= 0) return Problem(detail: "Invalid admin ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            var adminId = CurrentUserId;
+            if (adminId <= 0) return Unauthorized();
 
             var property = await _adminService.GetPropertyDetailAsync(id);
             if (property == null) return Problem(detail: $"Property with ID {id} not found", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
@@ -49,10 +49,11 @@ namespace Homunity_Web_Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AdminActionResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> RejectProperty(int id, int adminId, string reason)
+        public async Task<IActionResult> RejectProperty(int id, string reason)
         {
             if (id <= 0) return Problem(detail: "Invalid property ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (adminId <= 0) return Problem(detail: "Invalid admin ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            var adminId = CurrentUserId;
+            if (adminId <= 0) return Unauthorized();
             if (string.IsNullOrWhiteSpace(reason)) return Problem(detail: "Reject reason is required", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
             if (reason.Trim().Length < 10) return Problem(detail: "Reject reason must be at least 10 characters", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 

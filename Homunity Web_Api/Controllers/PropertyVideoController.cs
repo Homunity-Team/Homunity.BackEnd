@@ -1,4 +1,4 @@
-﻿using Homunity_Data_Access.Repositories;
+using Homunity_Buisness_Logic;
 using Homunity_Shared_DTOs.Properties;
 using Homunity_Web_Api.Properties;
 using Microsoft.AspNetCore.Authorization;
@@ -11,15 +11,15 @@ namespace Homunity_Web_Api.Controllers
     [Authorize]
     public class PropertyVideoController : AuthorizedControllerBase
     {
-        private readonly IPropertyRepository _propertyRepository;
-        public PropertyVideoController(IPropertyRepository propertyRepository) => _propertyRepository = propertyRepository;
+        private readonly IPropertyService _propertyService;
+        public PropertyVideoController(IPropertyService propertyService) => _propertyService = propertyService;
 
         [HttpGet("GetVideoById", Name = "GetVideoById")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PropertyVideoResponse))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetVideoById(int id)
         {
-            var video = await _propertyRepository.FindVideoByIdAsync(id);
+            var video = await _propertyService.FindVideoByIdAsync(id);
             if (video == null)
                 return Problem(detail: "Video not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
@@ -42,7 +42,7 @@ namespace Homunity_Web_Api.Controllers
             if (propertyId <= 0)
                 return Problem(detail: "Invalid property ID.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            var video = await _propertyRepository.GetVideoByPropertyIdAsync(propertyId);
+            var video = await _propertyService.GetVideoByPropertyIdAsync(propertyId);
             if (video == null)
                 return Problem(detail: "No video found for this property.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 

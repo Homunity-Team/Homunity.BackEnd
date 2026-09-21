@@ -38,7 +38,6 @@ namespace Homunity.Tests.Integration
         [Fact]
         public async Task RegisterLoginAndReadProperties_FullFlow_Succeeds()
         {
-            // ── 1. Register يوزر جديد بـPhone فريد (عشان متتكررش) ──
             var uniquePhone = $"010{DateTime.UtcNow.Ticks % 100000000}";
 
             var registerRequest = new
@@ -47,23 +46,23 @@ namespace Homunity.Tests.Integration
                 lastName = "Owner",
                 phone = uniquePhone,
                 password = "TestPass123",
-                roleId = 2   //  لازم يطابق RoleId الحقيقي لـ"Owner" عندك في جدول Roles
+                roleId = 2
             };
 
             var registerResponse = await _client.PostAsJsonAsync("/api/Users/Register", registerRequest);
             Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
 
-            // ── 2. Login بنفس البيانات ──
-            var loginResponse = await _client.PostAsync(
-                $"/api/Auth/Login?phone={uniquePhone}&password=TestPass123", null);
+            var loginResponse = await _client.PostAsJsonAsync(
+                "/api/Auth/Login",
+                new { phone = uniquePhone, password = "TestPass123" });
             Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
 
             var loginBody = await loginResponse.Content.ReadAsStringAsync();
             using var loginJson = JsonDocument.Parse(loginBody);
+
             var token = loginJson.RootElement.GetProperty("token").GetString();
             Assert.False(string.IsNullOrWhiteSpace(token));
 
-            // ── 3. GetAllV2 بالتوكن ── يتأكد إن الـToken فعليًا بيفتح endpoint محمي
             _client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -73,7 +72,6 @@ namespace Homunity.Tests.Integration
             var getAllBody = await getAllResponse.Content.ReadAsStringAsync();
             using var pagedJson = JsonDocument.Parse(getAllBody);
 
-            // ── 4. تأكيد شكل الـPagedResult (Sprint 5) ──
             Assert.True(pagedJson.RootElement.TryGetProperty("pageNumber", out _));
             Assert.True(pagedJson.RootElement.TryGetProperty("totalCount", out _));
             Assert.True(pagedJson.RootElement.TryGetProperty("items", out _));
