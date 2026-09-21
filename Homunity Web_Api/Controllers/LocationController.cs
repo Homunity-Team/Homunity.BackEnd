@@ -1,7 +1,5 @@
 ﻿using Homunity_Buisness_Logic;
-using Homunity_Data_Access;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Homunity_Web_Api.Controllers
@@ -11,94 +9,67 @@ namespace Homunity_Web_Api.Controllers
     [Authorize]
     public class LocationController : AuthorizedControllerBase
     {
+        private readonly ILocationService _locationService;
+        public LocationController(ILocationService locationService) => _locationService = locationService;
+
         [HttpGet("cities")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public IActionResult GetCities()
+        public async Task<IActionResult> GetCities()
         {
-            var cities = clsLocation.GetCities();
+            var cities = await _locationService.GetCitiesAsync();
             return Ok(cities);
         }
 
         [HttpGet("areas")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult GetAreas([FromQuery] string city)
+        public async Task<IActionResult> GetAreas([FromQuery] string city)
         {
             if (string.IsNullOrWhiteSpace(city))
                 return Problem(detail: "City is required.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            var areas = clsLocation.GetAreasByCity(city);
+            var areas = await _locationService.GetAreasByCityAsync(city);   // بترجّع List<AreaResponse> الآن
             return Ok(areas);
         }
-
         [HttpPost("SetPropertyLocation")]
         [Authorize(Roles = "Owner,Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult SetPropertyLocation([FromBody] SetLocationRequest request)
+        public async Task<IActionResult> SetPropertyLocation([FromBody] SetLocationRequest request)
         {
-            if (request == null)
-                return Problem(detail: "Invalid request.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (request.PropertyId <= 0)
-                return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (request.UniversityId <= 0)
-                return Problem(detail: "Invalid UniversityId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (request == null) return Problem(detail: "Invalid request.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (request.PropertyId <= 0) return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (request.UniversityId <= 0) return Problem(detail: "Invalid UniversityId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            bool uniFound = clsUniversitiesData.GetUniversityByID(request.UniversityId, out string uniName, out double uniLat, out double uniLon);
-            if (!uniFound)
-                return Problem(detail: "University not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
-
-            var property = clsProperties.FindByID(request.PropertyId);
-            if (property == null)
-                return Problem(detail: "Property not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
-            if (property.OwnerID != CurrentUserId && !IsAdmin) return Forbid();
-
-            double distance = clsUniversities.CalculateDistance(request.Lat, request.Lng, uniLat, uniLon);
-
-            bool locationUpdated = clsLocationData.UpdateLocation(property.LocationID, request.Address, request.Lat, request.Lng);
-            if (!locationUpdated)
-                return Problem(detail: "Failed to update location.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
-
-            bool universityUpdated = clsLocationData.UpdatePropertyUniversity(request.PropertyId, request.UniversityId);
-            if (!universityUpdated)
-                return Problem(detail: "Failed to link university.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
-
-            return Ok(new { message = "Location saved successfully", locationId = property.LocationID, universityName = uniName, distance_km = distance });
+            var result = await _locationService.SetPropertyLocationAsync(request.PropertyId, request.UniversityId, request.Address, request.Lat, request.Lng, CurrentUserId, IsAdmin);
+            return _BuildLocationResponse(result, "Location saved successfully");
         }
 
         [HttpPut("UpdatePropertyLocation")]
         [Authorize(Roles = "Owner,Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult UpdatePropertyLocation([FromBody] SetLocationRequest request)
+        public async Task<IActionResult> UpdatePropertyLocation([FromBody] SetLocationRequest request)
         {
-            if (request == null)
-                return Problem(detail: "Invalid request.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (request.PropertyId <= 0)
-                return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (request.UniversityId <= 0)
-                return Problem(detail: "Invalid UniversityId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (request == null) return Problem(detail: "Invalid request.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (request.PropertyId <= 0) return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (request.UniversityId <= 0) return Problem(detail: "Invalid UniversityId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            bool uniFound = clsUniversitiesData.GetUniversityByID(request.UniversityId, out string uniName, out double uniLat, out double uniLon);
-            if (!uniFound)
-                return Problem(detail: "University not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            var result = await _locationService.UpdatePropertyLocationAsync(request.PropertyId, request.UniversityId, request.Address, request.Lat, request.Lng, CurrentUserId, IsAdmin);
+            return _BuildLocationResponse(result, "Location updated successfully");
+        }
 
-            var property = clsProperties.FindByID(request.PropertyId);
-            if (property == null)
-                return Problem(detail: "Property not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
-            if (property.OwnerID != CurrentUserId && !IsAdmin) return Forbid();
-
-            double distance = clsUniversities.CalculateDistance(request.Lat, request.Lng, uniLat, uniLon);
-
-            bool locationUpdated = clsLocationData.UpdateLocation(property.LocationID, request.Address, request.Lat, request.Lng);
-            if (!locationUpdated)
-                return Problem(detail: "Failed to update location.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
-
-            bool universityUpdated = clsLocationData.UpdatePropertyUniversity(request.PropertyId, request.UniversityId);
-            if (!universityUpdated)
-                return Problem(detail: "Failed to update university link.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
-
-            return Ok(new { message = "Location updated successfully", locationId = property.LocationID, universityName = uniName, distance_km = distance });
+        private IActionResult _BuildLocationResponse(LocationUpdateResult result, string successMessage)
+        {
+            return result.Status switch
+            {
+                LocationUpdateStatus.UniversityNotFound => Problem(detail: "University not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found"),
+                LocationUpdateStatus.PropertyNotFound => Problem(detail: "Property not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found"),
+                LocationUpdateStatus.Forbidden => Forbid(),
+                LocationUpdateStatus.Failed => Problem(detail: "Failed to update location.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error"),
+                LocationUpdateStatus.Success => Ok(new { message = successMessage, locationId = result.LocationId, universityName = result.UniversityName, distance_km = result.DistanceKm }),
+                _ => Problem(detail: "Unexpected error.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error")
+            };
         }
     }
 

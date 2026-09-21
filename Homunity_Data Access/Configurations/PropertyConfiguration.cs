@@ -35,6 +35,13 @@ namespace Homunity_Data_Access.Configurations
                 .HasForeignKey(x => x.UniversityId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
+
+
+          
+            b.HasOne(x => x.Owner)
+                 .WithMany()
+                .HasForeignKey(x => x.OwnerId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

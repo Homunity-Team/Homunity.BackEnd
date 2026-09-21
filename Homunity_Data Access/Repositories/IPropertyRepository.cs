@@ -17,6 +17,16 @@ namespace Homunity_Data_Access.Repositories
         Task<bool> UpdatePropertyCoreAsync(PropertyUpdateCommand command);
         Task<bool> AddVideoAsync(int propertyId, string videoPath);
         Task DeleteVideosByPropertyIdAsync(int propertyId);
-        Task<(List<PropertyListProjection> Items, int TotalCount)> GetPagedAsync(PropertyListQuery query);   
+        Task<(List<PropertyListProjection> Items, int TotalCount)> GetPagedAsync(PropertyListQuery query);
+        Task<List<PropertyChatProjection>> GetActiveForChatAsync(int maxCount);
+        Task<(int OwnerId, int LocationId)?> GetOwnershipAsync(int propertyId);
+        Task<List<PropertyImageProjection>> GetImagesByPropertyIdAsync(int propertyId);
+        Task<PropertyImageProjection?> FindImageByIdAsync(int imageId);
+        Task<int> CountImagesAsync(int propertyId);
+        Task<PropertyVideoProjection?> GetVideoByPropertyIdAsync(int propertyId);
+        Task<PropertyVideoProjection?> FindVideoByIdAsync(int videoId);
+        Task<bool> DeletePropertyCascadeAsync(int propertyId);
+
+
     }
 }

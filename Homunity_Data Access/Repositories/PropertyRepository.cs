@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Homunity_Data_Access.Repositories
@@ -15,17 +14,14 @@ namespace Homunity_Data_Access.Repositories
         private readonly HomunityDbContext _db;
         public PropertyRepository(HomunityDbContext db) => _db = db;
 
-   
-
         public Task<PropertyEntity> GetByIdWithDetailsAsync(int propertyId) =>
-  
-                 _db.Properties.AsNoTracking()
-                 .Include(p => p.Location)
-                 .Include(p => p.University)
-                 .Include(p => p.Images)
-                 .Include(p => p.Videos)
-                 .Include(p => p.PropertyServices).ThenInclude(ps => ps.Service)
-                 .FirstOrDefaultAsync(p => p.PropertyId == propertyId);
+            _db.Properties.AsNoTracking()
+                .Include(p => p.Location)
+                .Include(p => p.University)
+                .Include(p => p.Images)
+                .Include(p => p.Videos)
+                .Include(p => p.PropertyServices).ThenInclude(ps => ps.Service)
+                .FirstOrDefaultAsync(p => p.PropertyId == propertyId);
 
         public async Task<HashSet<int>> GetValidServiceIdsAsync(IEnumerable<int> serviceIds)
         {
@@ -144,7 +140,6 @@ namespace Homunity_Data_Access.Repositories
             await _db.SaveChangesAsync();
         }
 
-
         public async Task<(List<PropertyListProjection> Items, int TotalCount)> GetPagedAsync(PropertyListQuery query)
         {
             var baseQuery = _db.Properties.AsNoTracking().AsQueryable();
@@ -156,7 +151,7 @@ namespace Homunity_Data_Access.Repositories
             }
             else
             {
-                // Public browse view: المعتمد وغير المحجوز بس (نفس فلتر الأصل الـADO.NET بالظبط)
+                // Public browse view: المعتمد وغير المحجوز بس
                 baseQuery = baseQuery.Where(p => p.StatusId == 2
                     && !_db.Bookings.Any(b => b.PropertyId == p.PropertyId && b.StatusId == 3));
             }
@@ -206,6 +201,101 @@ namespace Homunity_Data_Access.Repositories
 
             return (items, totalCount);
         }
-    }
 
+        public async Task<List<PropertyChatProjection>> GetActiveForChatAsync(int maxCount)
+        {
+            return await _db.Properties.AsNoTracking()
+                .Where(p => p.StatusId == 2 && !_db.Bookings.Any(b => b.PropertyId == p.PropertyId && b.StatusId == 3))
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(maxCount)
+                .Select(p => new PropertyChatProjection
+                {
+                    PropertyId = p.PropertyId,
+                    Title = p.Title,
+                    Price = p.Price,
+                    Rooms = p.Rooms,
+                    PropertyType = p.PropertyType,
+                    Address = p.FullAddress,
+                    UniversityId = p.UniversityId,
+                    UniversityName = p.University != null ? p.University.Name : null,
+                    MainImagePath = p.Images.OrderBy(i => i.CreatedAt).Select(i => i.ImagePath).FirstOrDefault()
+                })
+                .ToListAsync();
+        }
+
+        public async Task<(int OwnerId, int LocationId)?> GetOwnershipAsync(int propertyId)
+        {
+            var result = await _db.Properties.AsNoTracking()
+                .Where(p => p.PropertyId == propertyId)
+                .Select(p => new { p.OwnerId, p.LocationId })
+                .FirstOrDefaultAsync();
+
+            return result == null ? null : (result.OwnerId, result.LocationId);
+        }
+
+        public Task<List<PropertyImageProjection>> GetImagesByPropertyIdAsync(int propertyId) =>
+    _db.PropertyImages.AsNoTracking()
+        .Where(i => i.PropertyId == propertyId)
+        .OrderBy(i => i.CreatedAt)
+        .Select(i => new PropertyImageProjection { ImageId = i.ImageId, PropertyId = i.PropertyId, ImagePath = i.ImagePath, CreatedAt = i.CreatedAt })
+        .ToListAsync();
+
+        public Task<PropertyImageProjection?> FindImageByIdAsync(int imageId) =>
+            _db.PropertyImages.AsNoTracking()
+                .Where(i => i.ImageId == imageId)
+                .Select(i => new PropertyImageProjection { ImageId = i.ImageId, PropertyId = i.PropertyId, ImagePath = i.ImagePath, CreatedAt = i.CreatedAt })
+                .FirstOrDefaultAsync();
+
+        public Task<int> CountImagesAsync(int propertyId) =>
+            _db.PropertyImages.AsNoTracking().CountAsync(i => i.PropertyId == propertyId);
+
+        public Task<PropertyVideoProjection?> GetVideoByPropertyIdAsync(int propertyId) =>
+            _db.PropertyVideos.AsNoTracking()
+                .Where(v => v.PropertyId == propertyId)
+                .OrderByDescending(v => v.CreatedAt)
+                .Select(v => new PropertyVideoProjection { VideoId = v.VideoId, PropertyId = v.PropertyId, VideoPath = v.VideoPath, CreatedAt = v.CreatedAt })
+                .FirstOrDefaultAsync();
+
+        public Task<PropertyVideoProjection?> FindVideoByIdAsync(int videoId) =>
+            _db.PropertyVideos.AsNoTracking()
+                .Where(v => v.VideoId == videoId)
+                .Select(v => new PropertyVideoProjection { VideoId = v.VideoId, PropertyId = v.PropertyId, VideoPath = v.VideoPath, CreatedAt = v.CreatedAt })
+                .FirstOrDefaultAsync();
+
+        public async Task<bool> DeletePropertyCascadeAsync(int propertyId)
+        {
+            var exists = await _db.Properties.AsNoTracking().AnyAsync(p => p.PropertyId == propertyId);
+            if (!exists) return false;
+
+            // Explicit transaction is required here: six independent ExecuteDeleteAsync bulk statements
+            // (not covered by a single SaveChangesAsync/change tracker) must succeed or fail as one unit,
+            // otherwise a partial cascade leaves orphaned rows. This mirrors the exact table order and
+            // scope of the original clsPropertiesData.DeleteProperty implementation.
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                await _db.PropertyImages.Where(i => i.PropertyId == propertyId).ExecuteDeleteAsync();
+                await _db.PropertyVideos.Where(v => v.PropertyId == propertyId).ExecuteDeleteAsync();
+                await _db.PropertyServices.Where(ps => ps.PropertyId == propertyId).ExecuteDeleteAsync();
+                await _db.Bookings.Where(b => b.PropertyId == propertyId).ExecuteDeleteAsync();
+
+                // AdminActions has no EF entity (table confirmed write-dead across the whole solution —
+                // see Sprint 1 verification report — no INSERT path exists anywhere). Kept as one
+                // parameterized raw statement for schema-safety, same precedent as the Payment
+                // UPDLOCK exception from Sprint 1, rather than modeling a whole new entity for a
+                // single defensive cleanup line on a table nothing else touches.
+                await _db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM AdminActions WHERE PropertyId = {propertyId}");
+
+                var rows = await _db.Properties.Where(p => p.PropertyId == propertyId).ExecuteDeleteAsync();
+
+                await transaction.CommitAsync();
+                return rows > 0;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+        }
+    }
 }

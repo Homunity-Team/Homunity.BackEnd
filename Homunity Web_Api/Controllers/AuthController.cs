@@ -1,4 +1,5 @@
 ﻿using Homunity_Buisness_Logic;
+using Homunity_Shared_DTOs.Auth;
 using Homunity_Shared_DTOs.Users;
 using Homunity_Web_Api.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -66,12 +67,15 @@ namespace Homunity_Web_Api.Controllers
                     title: "Unauthorized");
             }
 
-            return Ok(new
+
+            return Ok(new LoginResponse
             {
-                token,
-                expiresAt,
-                userData = user
+                Token = token,
+                ExpiresAt = expiresAt,
+                UserData = user
             });
+
+        
         }
     }
 }

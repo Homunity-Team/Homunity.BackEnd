@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace Homunity_Data_Access.Entities
 {
-    // Read-only Entity — بس عشان فلتر "العقار مش محجوز" في القوائم العامة
     public class BookingEntity
     {
         public int BookingId { get; set; }
@@ -15,5 +14,11 @@ namespace Homunity_Data_Access.Entities
         public int StatusId { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? ConfirmedAt { get; set; }
+
+        public PropertyEntity Property { get; set; } = null!;
+        public UserEntity Student { get; set; } = null!;
+        public BookingStatusEntity Status { get; set; } = null!;
+        public List<PaymentEntity> Payments { get; set; } = new();
+
     }
 }

@@ -1,8 +1,7 @@
-﻿using Homunity_Business_Logic;
+﻿using Homunity_Data_Access.Repositories;
+using Homunity_Shared_DTOs.Bookings;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
 
 namespace Homunity_Web_Api.Controllers
 {
@@ -11,44 +10,31 @@ namespace Homunity_Web_Api.Controllers
     [Authorize]
     public class BookingStatusController : AuthorizedControllerBase
     {
+        private readonly IBookingStatusRepository _repo;
+        public BookingStatusController(IBookingStatusRepository repo) => _repo = repo;
+
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetAllBookingStatuses()
+        public async Task<IActionResult> GetAllBookingStatuses()
         {
-            DataTable statuses = clsBookingStatus.GetAllBookingStatuses();
-            if (statuses.Rows.Count == 0)
-                return Problem(detail: "No booking statuses found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            var statuses = await _repo.GetAllAsync();
+            if (statuses.Count == 0) return Problem(detail: "No booking statuses found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
-            return Ok(_ConvertDataTableToList(statuses));
-        }
-
-        private List<Dictionary<string, object>> _ConvertDataTableToList(DataTable dt)
-        {
-            var result = new List<Dictionary<string, object>>();
-            foreach (DataRow row in dt.Rows)
-            {
-                var dict = new Dictionary<string, object>();
-                foreach (DataColumn col in dt.Columns)
-                    dict[col.ColumnName] = row[col] == DBNull.Value ? null : row[col];
-                result.Add(dict);
-            }
-            return result;
+            return Ok(statuses.Select(s => new BookingStatusResponse { BookingStatusId = s.BookingStatusId, StatusName = s.StatusName }).ToList());
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(BookingStatusResponse))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetBookingStatusById(int id)
+        public async Task<IActionResult> GetBookingStatusById(int id)
         {
-            if (id <= 0)
-                return Problem(detail: "Invalid BookingStatusId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (id <= 0) return Problem(detail: "Invalid BookingStatusId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            clsBookingStatus status = clsBookingStatus.Find(id);
-            if (status == null)
-                return Problem(detail: $"Booking status with ID {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            var status = await _repo.FindAsync(id);
+            if (status == null) return Problem(detail: $"Booking status with ID {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
-            return Ok(new { bookingStatusId = status.BookingStatusId, statusName = status.StatusName });
+            return Ok(new BookingStatusResponse { BookingStatusId = status.BookingStatusId, StatusName = status.StatusName });
         }
     }
 }

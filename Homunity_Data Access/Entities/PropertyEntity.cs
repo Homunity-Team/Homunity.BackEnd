@@ -10,11 +10,11 @@ namespace Homunity_Data_Access.Entities
     {
         public int PropertyId { get; set; }
         public int OwnerId { get; set; }
-        public string Title { get; set; }
-        public string Description { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
         public decimal Price { get; set; }
         public int Rooms { get; set; }
-        public string PropertyType { get; set; }
+        public string PropertyType { get; set; } = "";
         public int LocationId { get; set; }
         public int StatusId { get; set; }
         public string? RejectReason { get; set; }
@@ -22,8 +22,9 @@ namespace Homunity_Data_Access.Entities
         public int? UniversityId { get; set; }
         public string? FullAddress { get; set; }
 
-        public LocationEntity Location { get; set; }
-        public UniversityEntity University { get; set; }
+        public UserEntity? Owner { get; set; }
+        public LocationEntity Location { get; set; } = null!;
+        public UniversityEntity? University { get; set; }
         public List<PropertyImageEntity> Images { get; set; } = new();
         public List<PropertyVideoEntity> Videos { get; set; } = new();
         public List<PropertyServiceEntity> PropertyServices { get; set; } = new();

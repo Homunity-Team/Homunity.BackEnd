@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Homunity_Data_Access.Data
 {
-    public class HomunityDbContext : DbContext
+        public class HomunityDbContext : DbContext
     {
         public HomunityDbContext(DbContextOptions<HomunityDbContext> options) : base(options) { }
 
@@ -23,8 +23,11 @@ namespace Homunity_Data_Access.Data
         public DbSet<PropertyVideoEntity> PropertyVideos => Set<PropertyVideoEntity>();
         public DbSet<PropertyServiceEntity> PropertyServices => Set<PropertyServiceEntity>();
         public DbSet<RoleEntity> Roles => Set<RoleEntity>();
-   
         public DbSet<BookingEntity> Bookings => Set<BookingEntity>();
+        public DbSet<BookingStatusEntity> BookingStatuses => Set<BookingStatusEntity>();
+        public DbSet<PaymentEntity> Payments => Set<PaymentEntity>();
+        public DbSet<ChatMessageEntity> ChatMessages => Set<ChatMessageEntity>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfiguration(new UserConfiguration());
@@ -37,7 +40,10 @@ namespace Homunity_Data_Access.Data
             modelBuilder.ApplyConfiguration(new PropertyServiceConfiguration());
             modelBuilder.ApplyConfiguration(new RoleConfiguration());
             modelBuilder.ApplyConfiguration(new BookingConfiguration());
-
+            modelBuilder.ApplyConfiguration(new BookingStatusConfiguration());
+            modelBuilder.ApplyConfiguration(new PaymentConfiguration());
+            modelBuilder.ApplyConfiguration(new ChatMessageConfiguration());
         }
     }
+ 
 }

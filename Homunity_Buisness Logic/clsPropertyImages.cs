@@ -21,10 +21,10 @@ namespace Homunity_Buisness_Logic
         [JsonIgnore]
         public enMode Mode { get; set; } = enMode.AddNew;
 
-        public int ImageId { get;  set; }
+        public int ImageId { get; set; }
         public int PropertyId { get; set; }
         public string ImagePath { get; set; }
-        public DateTime CreatedAt { get;  set; }
+        public DateTime CreatedAt { get; set; }
 
         // Business Rules
         private const int MAX_IMAGES = 6;
@@ -70,11 +70,11 @@ namespace Homunity_Buisness_Logic
             long maxSizeBytes = MAX_IMAGE_SIZE_BYTES * 1024 * 1024;
             if (fileSizeBytes <= 0 || fileSizeBytes > MAX_IMAGE_SIZE_BYTES)
                 return false;
- 
+
             return true;
         }
 
-        
+
         // ================= ADD NEW IMAGE =================
         private bool _AddNewImage(long fileSizeBytes, int propertyId, string imagePath,
             SqlConnection connection, SqlTransaction transaction)
@@ -95,8 +95,8 @@ namespace Homunity_Buisness_Logic
             Mode = enMode.Update;
             return true;
         }
-        
-        
+
+
         // ================= UPDATE IMAGE =================
         private bool _UpdateImage(long fileSizeBytes)
         {
@@ -105,7 +105,7 @@ namespace Homunity_Buisness_Logic
                 return false;
 
             // Update in database
-            return clsPropertyImagesData.UpdateImageAsync(ImageId, ImagePath).GetAwaiter().GetResult(); 
+            return clsPropertyImagesData.UpdateImageAsync(ImageId, ImagePath).GetAwaiter().GetResult();
         }
 
 
@@ -114,10 +114,10 @@ namespace Homunity_Buisness_Logic
         {
             try
             {
-                switch (Mode) 
+                switch (Mode)
                 {
                     case enMode.AddNew:
-                        return _AddNewImage(fileSizeBytes, propertyId, imagePath,  connection, transaction);
+                        return _AddNewImage(fileSizeBytes, propertyId, imagePath, connection, transaction);
 
                     case enMode.Update:
                         return _UpdateImage(fileSizeBytes);
@@ -215,9 +215,9 @@ namespace Homunity_Buisness_Logic
 
             return images.Count == 0 ? null : images[0];
         }
- 
 
-        
+
+
         public static bool Delete(int imageId, int propertyId, SqlConnection connection, SqlTransaction transaction)
         {
             if (imageId <= 0 || propertyId <= 0)
@@ -229,4 +229,3 @@ namespace Homunity_Buisness_Logic
 
     }
 }
-

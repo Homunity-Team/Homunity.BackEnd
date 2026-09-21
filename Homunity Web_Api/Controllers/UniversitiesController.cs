@@ -1,6 +1,6 @@
 ﻿using Homunity_Buisness_Logic;
+using Homunity_Shared_DTOs.Reference;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Homunity_Web_Api.Controllers
@@ -10,23 +10,17 @@ namespace Homunity_Web_Api.Controllers
     [Authorize]
     public class UniversitiesController : AuthorizedControllerBase
     {
+        private readonly IUniversityService _universityService;
+        public UniversitiesController(IUniversityService universityService) => _universityService = universityService;
+
         [HttpGet("GetAll")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var universities = clsUniversities.GetAllUniversities();
-            return Ok(new
-            {
-                message = "Universities retrieved successfully",
-                count = universities.Count,
-                universities = universities.Select(u => new
-                {
-                    universityId = u.UniversityId,
-                    name = u.Name,
-                    latitude = u.Latitude,
-                    longitude = u.Longitude
-                })
-            });
+            var universities = await _universityService.GetAllAsync();
+            var result = universities.Select(u => new UniversityResponse { UniversityId = u.UniversityId, Name = u.Name, Latitude = u.Latitude, Longitude = u.Longitude }).ToList();
+
+            return Ok(new { message = "Universities retrieved successfully", count = result.Count, universities = result });
         }
     }
 }

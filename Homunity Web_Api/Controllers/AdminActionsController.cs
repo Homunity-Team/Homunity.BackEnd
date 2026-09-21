@@ -1,368 +1,222 @@
 ﻿using Homunity_Buisness_Logic;
-using Homunity_Business_Logic;// لو موجود بالفعل
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Homunity_Shared_DTOs.AdminActions;
+using Homunity_Web_Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Homunity_Web_Api.Controllers
 {
     [Route("api/AdminActions")]
     [ApiController]
-    [Authorize(Roles = "Admin")]   // ← جديد: كل الكنترولر Admin بس
-    public class AdminActionsController : AuthorizedControllerBase   // ← بدل ControllerBase
+    [Authorize(Policy = PolicyNames.AdminOnly)]
+    public class AdminActionsController : AuthorizedControllerBase
     {
+        private readonly IAdminActionsService _adminService;
+        public AdminActionsController(IAdminActionsService adminService) => _adminService = adminService;
 
-        // =============================================
-        // PUT: api/admin/properties/{id}/approve
-        // =============================================
         [HttpPut("properties/{id}/approve")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AdminActionResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult ApproveProperty(int id, int adminId)
+        public async Task<IActionResult> ApproveProperty(int id, int adminId)
         {
-            if (id <= 0)
-                return BadRequest(new { message = "Invalid property ID" });
+            if (id <= 0) return Problem(detail: "Invalid property ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (adminId <= 0) return Problem(detail: "Invalid admin ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            if (adminId <= 0)
-                return BadRequest(new { message = "Invalid admin ID" });
+            var property = await _adminService.GetPropertyDetailAsync(id);
+            if (property == null) return Problem(detail: $"Property with ID {id} not found", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
-            // Check property exists
-            var property = clsProperties.FindByID(id);
-            if (property == null)
-                return NotFound(new { message = $"Property with ID {id} not found" });
+            if (property.StatusId != 1)
+                return Problem(detail: "Cannot approve property. Only Pending properties can be approved.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            // Check current status
-            if (property.PropertyStatusID != 1)
-                return BadRequest(new
-                {
-                    message = "Cannot approve property. Only Pending properties can be approved."
-                });
-
-            if (clsProperties.Approve(id, adminId))
+            if (await _adminService.ApproveAsync(id, adminId))
             {
-                return Ok(new
+                return Ok(new AdminActionResponse
                 {
-                    message = "Property approved successfully",
-                    propertyID = id,
-                    adminId = adminId,
-                    approvedAt = DateTime.Now
+                    PropertyId = id,
+                    AdminId = adminId,
+                    Action = "Approved",
+                    RejectReason = null,
+                    Timestamp = DateTime.Now,
+                    Message = "Property approved successfully"
                 });
             }
 
-            return StatusCode(500, new
-            {
-                message = "Error approving property. Admin may not be valid."
-            });
+            return Problem(detail: "Error approving property. Admin may not be valid.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
         }
 
-
-
-
-
-        // =============================================
-        // PUT: api/admin/properties/{id}/reject
-        // =============================================
         [HttpPut("properties/{id}/reject")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AdminActionResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult RejectProperty(int id, int adminId, string reason)
+        public async Task<IActionResult> RejectProperty(int id, int adminId, string reason)
         {
-            if (id <= 0)
-                return BadRequest(new { message = "Invalid property ID" });
+            if (id <= 0) return Problem(detail: "Invalid property ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (adminId <= 0) return Problem(detail: "Invalid admin ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (string.IsNullOrWhiteSpace(reason)) return Problem(detail: "Reject reason is required", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (reason.Trim().Length < 10) return Problem(detail: "Reject reason must be at least 10 characters", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            if (adminId <= 0)
-                return BadRequest(new { message = "Invalid admin ID" });
+            var property = await _adminService.GetPropertyDetailAsync(id);
+            if (property == null) return Problem(detail: $"Property with ID {id} not found", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
-            if (string.IsNullOrWhiteSpace(reason))
-                return BadRequest(new { message = "Reject reason is required" });
+            if (property.StatusId != 1)
+                return Problem(detail: "Cannot reject property. Only Pending properties can be rejected.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            if (reason.Trim().Length < 10)
-                return BadRequest(new { message = "Reject reason must be at least 10 characters" });
-
-            // Check property exists
-            var property = clsProperties.FindByID(id);
-            if (property == null)
-                return NotFound(new { message = $"Property with ID {id} not found" });
-
-            // Check current status
-            if (property.PropertyStatusID != 1)
-                return BadRequest(new
-                {
-                    message = "Cannot reject property. Only Pending properties can be rejected."
-                });
-
-            if (clsProperties.Reject(id, adminId, reason))
+            if (await _adminService.RejectAsync(id, adminId, reason))
             {
-                return Ok(new
+                return Ok(new AdminActionResponse
                 {
-                    message = "Property rejected successfully",
-                    propertyID = id,
-                    adminId = adminId,
-                    rejectReason = reason.Trim(),
-                    rejectedAt = DateTime.Now
+                    PropertyId = id,
+                    AdminId = adminId,
+                    Action = "Rejected",
+                    RejectReason = reason.Trim(),
+                    Timestamp = DateTime.Now,
+                    Message = "Property rejected successfully"
                 });
             }
 
-            return StatusCode(500, new
-            {
-                message = "Error rejecting property. Admin may not be valid."
-            });
+            return Problem(detail: "Error rejecting property. Admin may not be valid.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
         }
 
-
-
-        // =============================================
-        // GET: api/admin/properties/pending
-        // =============================================
         [HttpGet("properties/pending")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetPendingProperties(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetPendingProperties(int page = 1, int pageSize = 10)
         {
-            if (page <= 0)
-                return BadRequest(new { message = "Page must be greater than 0" });
+            if (page <= 0) return Problem(detail: "Page must be greater than 0", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (pageSize <= 0 || pageSize > 50) return Problem(detail: "PageSize must be between 1 and 50", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            if (pageSize <= 0 || pageSize > 50)
-                return BadRequest(new { message = "PageSize must be between 1 and 50" });
-
-            var (properties, totalCount) = clsProperties.GetPendingProperties(page, pageSize);
-
-            if (properties == null || properties.Count == 0)
-                return NotFound(new { message = "No pending properties found" });
+            var (properties, totalCount) = await _adminService.GetPendingPropertiesAsync(page, pageSize);
+            if (properties.Count == 0) return Problem(detail: "No pending properties found", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-
-            var result = properties.Select(p =>
+            var items = properties.Select(p => new AdminPendingPropertyResponse
             {
-                var thumbnail = clsPropertyImages.GetFirstImageByPropertyID(p.PropertyID);
-
-                return new
-                {
-                    propertyID = p.PropertyID,
-                    title = p.Title,
-                    ownerName = p.OwnerName,
-                    description = p.Description,
-                    price = p.Price,
-                    rooms = p.Rooms,
-                    propertyType = p.PropertyType,
-                    statusID = p.PropertyStatusID,
-                    createdAt = p.CreatedAt,
-                    location = new
-                    {
-                        locationId = p.LocationID,
-                        city = p.City,
-                        area = p.Area
-                    },
-                    thumbnail = thumbnail == null
-                        ? null
-                        : $"{baseUrl}/{thumbnail.ImagePath}"
-                };
+                PropertyId = p.PropertyId,
+                Title = p.Title,
+                OwnerName = p.OwnerName,
+                Description = p.Description,
+                Price = p.Price,
+                Rooms = p.Rooms,
+                PropertyType = p.PropertyType,
+                StatusId = p.StatusId,
+                CreatedAt = p.CreatedAt,
+                Location = new AdminPropertyLocationInfo { LocationId = p.LocationId, City = p.City, Area = p.Area },
+                Thumbnail = p.Thumbnail == null ? null : $"{baseUrl}/{p.Thumbnail}"
             }).ToList();
 
-            return Ok(new
+            // Sprint 3 (بند 7 — Pagination responses): استخدام PagedResult<T> الموحّدة الموجودة
+            // أصلًا في المشروع بدل الغلاف اليدوي (page/pageSize/totalPages) المختلف عن باقي الـAPI.
+            var pagination = new Homunity_Shared_DTOs.PagedResult<AdminPendingPropertyResponse>
             {
-                message = "Pending properties retrieved successfully",
-                totalCount = totalCount,
-                page = page,
-                pageSize = pageSize,
-                totalPages = (int)Math.Ceiling((double)totalCount / pageSize),
-                properties = result
-            });
+                PageNumber = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = items
+            };
+
+            return Ok(new { message = "Pending properties retrieved successfully", pagination });
         }
 
-
-
-        // =============================================
-        // GET: api/admin/properties/rejected
-        // =============================================
         [HttpGet("properties/rejected")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetRejectedProperties()
+        public async Task<IActionResult> GetRejectedProperties()
         {
-            var properties = clsProperties.GetRejectedProperties();
-
-            if (properties == null || properties.Count == 0)
-                return NotFound(new { message = "No rejected properties found" });
+            var properties = await _adminService.GetRejectedPropertiesAsync();
+            if (properties.Count == 0) return Problem(detail: "No rejected properties found", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-
-            var result = properties.Select(p =>
+            var result = properties.Select(p => new AdminRejectedPropertyResponse
             {
-                var thumbnail = clsPropertyImages.GetFirstImageByPropertyID(p.PropertyID);
-
-                return new
-                {
-                    propertyID = p.PropertyID,
-                    title = p.Title,
-                    description = p.Description,
-                    price = p.Price,
-                    rooms = p.Rooms,
-                    propertyType = p.PropertyType,
-                    statusID = p.PropertyStatusID,
-                    rejectReason = p.RejectReason,
-                    createdAt = p.CreatedAt,
-                    location = new
-                    {
-                        locationId = p.LocationID,
-                        city = p.City,
-                        area = p.Area
-                    },
-                    thumbnail = thumbnail == null
-                        ? null
-                        : $"{baseUrl}/{thumbnail.ImagePath}"
-                };
+                PropertyId = p.PropertyId,
+                Title = p.Title,
+                Description = p.Description,
+                Price = p.Price,
+                Rooms = p.Rooms,
+                PropertyType = p.PropertyType,
+                StatusId = p.StatusId,
+                RejectReason = p.RejectReason,
+                CreatedAt = p.CreatedAt,
+                Location = new AdminPropertyLocationInfo { LocationId = p.LocationId, City = p.City, Area = p.Area },
+                Thumbnail = p.Thumbnail == null ? null : $"{baseUrl}/{p.Thumbnail}"
             }).ToList();
 
-            return Ok(new
-            {
-                message = "Rejected properties retrieved successfully",
-                count = result.Count,
-                properties = result
-            });
+            return Ok(new { message = "Rejected properties retrieved successfully", count = result.Count, properties = result });
         }
 
-
-
-
-
-        // =============================================
-        // GET: api/admin/properties/{id}
-        // =============================================
         [HttpGet("properties/{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetPropertyDetails(int id)
+        public async Task<IActionResult> GetPropertyDetails(int id)
         {
-            if (id <= 0)
-                return BadRequest(new { message = "Invalid property ID" });
+            if (id <= 0) return Problem(detail: "Invalid property ID", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            var property = clsProperties.FindByID(id);
-
-            if (property == null)
-                return NotFound(new { message = $"Property with ID {id} not found" });
+            var property = await _adminService.GetPropertyDetailAsync(id);
+            if (property == null) return Problem(detail: $"Property with ID {id} not found", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var images = clsPropertyImages.GetImagesByPropertyID(id);
-            var video = clsPropertyVideo.GetVideoByPropertyID(id);
-
-            return Ok(new
+            var response = new AdminPropertyDetailResponse
             {
-                message = "Property found",
-                property = new
-                {
-                    propertyID = property.PropertyID,
-                    ownerID = property.OwnerID,
-                    title = property.Title,
-                    description = property.Description,
-                    price = property.Price,
-                    rooms = property.Rooms,
-                    propertyType = property.PropertyType,
-                    statusID = property.PropertyStatusID,
-                    rejectReason = string.IsNullOrWhiteSpace(property.RejectReason)
-                        ? null
-                        : property.RejectReason,
-                    createdAt = property.CreatedAt,
-                    location = new
-                    {
-                        locationId = property.LocationID,
-                        city = property.City,
-                        area = property.Area
-                    },
-                    images = images == null || images.Count == 0
-                        ? null
-                        : (object)images.Select(img => new
-                        {
-                            imageId = img.ImageId,
-                            imageUrl = $"{baseUrl}/{img.ImagePath}"
-                        }).ToList(),
-                    video = video == null
-                        ? null
-                        : (object)new
-                        {
-                            videoId = video.VideoId,
-                            videoUrl = $"{baseUrl}/{video.VideoPath}"
-                        }
-                }
-            });
+                PropertyId = property.PropertyId,
+                OwnerId = property.OwnerId,
+                Title = property.Title,
+                Description = property.Description,
+                Price = property.Price,
+                Rooms = property.Rooms,
+                PropertyType = property.PropertyType,
+                StatusId = property.StatusId,
+                RejectReason = string.IsNullOrWhiteSpace(property.RejectReason) ? null : property.RejectReason,
+                CreatedAt = property.CreatedAt,
+                Location = new AdminPropertyLocationInfo { LocationId = property.LocationId, City = property.City, Area = property.Area },
+                Images = property.Images.Count == 0 ? null : property.Images.Select(img => new AdminPropertyImageInfo { ImageId = img.ImageId, ImageUrl = $"{baseUrl}/{img.ImagePath}" }).ToList(),
+                Video = property.Video == null ? null : new AdminPropertyVideoInfo { VideoId = property.Video.Value.VideoId, VideoUrl = $"{baseUrl}/{property.Video.Value.VideoPath}" }
+            };
+
+            return Ok(new { message = "Property found", property = response });
         }
 
-
-
-
-
-
-
-
-
-        // =============================================
-        // GET: api/admin/dashboard/stats
-        // =============================================
         [HttpGet("dashboard/stats")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public IActionResult GetDashboardStats()
+        public async Task<IActionResult> GetDashboardStats()
         {
-            var stats = clsAdminActions.GetDashboardStats();
-
-            return Ok(new
+            var stats = await _adminService.GetDashboardStatsAsync();
+            var response = new DashboardStatsResponse
             {
-                message = "Dashboard stats retrieved successfully",
-                stats = stats
-            });
+                TotalProperties = stats.TotalProperties,
+                PendingProperties = stats.PendingProperties,
+                ApprovedProperties = stats.ApprovedProperties,
+                RejectedProperties = stats.RejectedProperties,
+                TotalBookings = stats.TotalBookings,
+                TotalUsers = stats.TotalUsers
+            };
+
+            return Ok(new { message = "Dashboard stats retrieved successfully", stats = response });
         }
 
-
-
-
-
-        // =============================================
-        // GET: api/AdminActions/dashboard/recent-actions
-        // =============================================
         [HttpGet("dashboard/recent-actions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public IActionResult GetRecentActions(int pageSize = 10)
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetRecentActions(int pageSize = 10)
         {
-            var properties = clsAdminActions.GetRecentActions(pageSize);
-
-            if (properties == null || properties.Count == 0)
-                return NotFound(new { message = "No actions found" });
+            var properties = await _adminService.GetRecentActionsAsync(pageSize);
+            if (properties.Count == 0) return Problem(detail: "No actions found", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-
-            var result = properties.Select(p =>
+            var result = properties.Select(p => new AdminRecentActionResponse
             {
-                var thumbnail = clsPropertyImages.GetFirstImageByPropertyID(p.PropertyID);
-
-                return new
-                {
-                    propertyID = p.PropertyID,
-                    title = p.Title,
-                    ownerName = p.OwnerName,
-                    location = new
-                    {
-                        city = p.City,
-                        area = p.Area
-                    },
-                    actionType = p.PropertyStatusID == 2 ? "Approved" : "Rejected",
-                    statusID = p.PropertyStatusID,
-                    createdAt = p.CreatedAt,
-                    thumbnail = thumbnail == null
-                        ? null
-                        : $"{baseUrl}/{thumbnail.ImagePath}"
-                };
+                PropertyId = p.PropertyId,
+                Title = p.Title,
+                OwnerName = p.OwnerName,
+                Location = new AdminPropertyLocationInfo { City = p.City, Area = p.Area },
+                ActionType = p.StatusId == 2 ? "Approved" : "Rejected",
+                StatusId = p.StatusId,
+                CreatedAt = p.CreatedAt,
+                Thumbnail = p.Thumbnail == null ? null : $"{baseUrl}/{p.Thumbnail}"
             }).ToList();
 
-            return Ok(new
-            {
-                message = "Recent actions retrieved successfully",
-                count = result.Count,
-                properties = result
-            });
+            return Ok(new { message = "Recent actions retrieved successfully", count = result.Count, properties = result });
         }
- 
-        
     }
 }

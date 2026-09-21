@@ -1,9 +1,8 @@
 ﻿using Homunity_Buisness_Logic;
-using Homunity_Business_Logic;
+using Homunity_Data_Access.Repositories;
+using Homunity_Shared_DTOs.Bookings;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
 
 namespace Homunity_Web_Api.Controllers
 {
@@ -12,98 +11,102 @@ namespace Homunity_Web_Api.Controllers
     [Authorize]
     public class BookingController : AuthorizedControllerBase
     {
+        private readonly IBookingService _bookingService;
+        private readonly IPropertyRepository _propertyRepo;
+
+        public BookingController(IBookingService bookingService, IPropertyRepository propertyRepo)
+        {
+            _bookingService = bookingService;
+            _propertyRepo = propertyRepo;
+        }
+
         [HttpPost]
         [Authorize(Roles = "Student")]
-        public IActionResult CreateBooking(int PropertyId, int StudentId)
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(BookingCreatedResponse))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CreateBooking(int PropertyId, int StudentId)
         {
-            if (PropertyId <= 0)
-                return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (StudentId <= 0)
-                return Problem(detail: "Invalid StudentId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (StudentId != CurrentUserId) return Forbid();
+            if (PropertyId <= 0) return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (StudentId <= 0) return Problem(detail: "Invalid StudentId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (!await IsAuthorizedForResourceAsync(StudentId)) return Forbid();
 
-            clsBooking booking = new clsBooking { PropertyId = PropertyId, StudentId = StudentId, StatusId = 2 };
+            var result = await _bookingService.CreateAsync(PropertyId, StudentId);
+            if (!result.Success)
+                return Problem(detail: "Error creating booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
 
-            if (booking.Save())
+            var response = new BookingCreatedResponse
             {
-                return CreatedAtAction(nameof(GetBookingById), new { id = booking.BookingId }, new
-                {
-                    bookingId = booking.BookingId,
-                    propertyId = booking.PropertyId,
-                    studentId = booking.StudentId,
-                    statusId = booking.StatusId,
-                    createdAt = booking.CreatedAt,
-                    message = "Booking created successfully"
-                });
-            }
+                BookingId = result.BookingId,
+                PropertyId = result.PropertyId,
+                StudentId = result.StudentId,
+                StatusId = result.StatusId,
+                CreatedAt = result.CreatedAt,
+                Message = "Booking created successfully"
+            };
 
-            return Problem(detail: "Error creating booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
+            return CreatedAtAction(nameof(GetBookingById), new { id = result.BookingId }, response);
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(BookingDetailResponse))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetBookingById(int id)
+        public async Task<IActionResult> GetBookingById(int id)
         {
-            if (id <= 0)
-                return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (id <= 0) return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            clsBooking booking = clsBooking.Find(id);
-            if (booking == null)
-                return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            var booking = await _bookingService.GetByIdAsync(id);
+            if (booking == null) return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
-            var property = clsProperties.FindByID(booking.PropertyId);
-            bool isPropertyOwner = property != null && property.OwnerID == CurrentUserId;
-            if (booking.StudentId != CurrentUserId && !isPropertyOwner && !IsAdmin)
-                return Forbid();
+            if (!await IsAuthorizedForResourceAsync(booking.StudentId, booking.PropertyOwnerId)) return Forbid();
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            return Ok(new
+            var response = new BookingDetailResponse
             {
-                bookingId = booking.BookingId,
-                statusId = booking.StatusId,
-                statusName = booking.BookingStatusInfo?.StatusName,
-                createdAt = booking.CreatedAt,
-                confirmedAt = booking.ConfirmedAt,
-                property = new
+                BookingId = booking.BookingId,
+                StatusId = booking.StatusId,
+                StatusName = booking.StatusName,
+                CreatedAt = booking.CreatedAt,
+                ConfirmedAt = booking.ConfirmedAt,
+                Property = new BookingPropertyInfo
                 {
-                    propertyId = booking.PropertyId,
-                    title = booking.PropertyTitle,
-                    price = booking.PropertyPrice,
-                    address = booking.PropertyAddress,
-                    imageUrl = booking.PropertyImagePath == null ? null : $"{baseUrl}/{booking.PropertyImagePath}"
+                    PropertyId = booking.PropertyId,
+                    Title = booking.PropertyTitle,
+                    Price = booking.PropertyPrice,
+                    Address = booking.PropertyAddress,
+                    ImageUrl = booking.PropertyImagePath == null ? null : $"{baseUrl}/{booking.PropertyImagePath}"
                 }
-            });
+            };
+
+            return Ok(response);
         }
 
         [HttpGet("student/{studentId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetBookingsByStudent(int studentId)
+        public async Task<IActionResult> GetBookingsByStudent(int studentId)
         {
-            if (studentId <= 0)
-                return Problem(detail: "Invalid StudentId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (studentId != CurrentUserId && !IsAdmin) return Forbid();
+            if (studentId <= 0) return Problem(detail: "Invalid StudentId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (!await IsAuthorizedForResourceAsync(studentId)) return Forbid();
 
-            DataTable bookings = clsBooking.GetBookingsByStudentID(studentId);
-            if (bookings.Rows.Count == 0)
+            var bookings = await _bookingService.GetByStudentIdAsync(studentId);
+            if (bookings.Count == 0)
                 return Problem(detail: $"No bookings for student {studentId}.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var result = bookings.AsEnumerable().Select(row => new
+            var result = bookings.Select(b => new BookingListItemResponse
             {
-                bookingId = Convert.ToInt32(row["BookingId"]),
-                statusId = Convert.ToInt32(row["StatusId"]),
-                statusName = row["StatusName"].ToString(),
-                createdAt = Convert.ToDateTime(row["CreatedAt"]),
-                confirmedAt = row["ConfirmedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(row["ConfirmedAt"]),
-                property = new
+                BookingId = b.BookingId,
+                StatusId = b.StatusId,
+                StatusName = b.StatusName,
+                CreatedAt = b.CreatedAt,
+                ConfirmedAt = b.ConfirmedAt,
+                Property = new BookingListPropertyInfo
                 {
-                    propertyId = Convert.ToInt32(row["PropertyId"]),
-                    title = row["PropertyTitle"].ToString(),
-                    price = Convert.ToDecimal(row["Price"]),
-                    address = row["PropertyAddress"].ToString(),
-                    imageUrl = row["ImagePath"] == DBNull.Value ? null : $"{baseUrl}/{row["ImagePath"]}"
+                    PropertyId = b.PropertyId,
+                    Title = b.PropertyTitle,
+                    Price = b.PropertyPrice,
+                    Address = b.PropertyAddress,
+                    ImageUrl = b.ImagePath == null ? null : $"{baseUrl}/{b.ImagePath}"
                 }
             }).ToList();
 
@@ -113,31 +116,31 @@ namespace Homunity_Web_Api.Controllers
         [HttpGet("owner/{ownerId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetBookingsByOwner(int ownerId)
+        public async Task<IActionResult> GetBookingsByOwner(int ownerId)
         {
-            if (ownerId <= 0)
-                return Problem(detail: "Invalid OwnerId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (ownerId != CurrentUserId && !IsAdmin) return Forbid();
+            if (ownerId <= 0) return Problem(detail: "Invalid OwnerId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (!await IsAuthorizedForResourceAsync(ownerId)) return Forbid();
 
-            DataTable bookings = clsBooking.GetBookingsByOwnerID(ownerId);
-            if (bookings.Rows.Count == 0)
+            var bookings = await _bookingService.GetByOwnerIdAsync(ownerId);
+            if (bookings.Count == 0)
                 return Problem(detail: $"No bookings for owner {ownerId}.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
 
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var result = bookings.AsEnumerable().Select(row => new
+            var result = bookings.Select(b => new BookingListItemResponse
             {
-                bookingId = Convert.ToInt32(row["BookingId"]),
-                studentName = row["StudentName"].ToString(),
-                statusId = Convert.ToInt32(row["StatusId"]),
-                statusName = row["StatusName"].ToString(),
-                createdAt = Convert.ToDateTime(row["CreatedAt"]),
-                confirmedAt = row["ConfirmedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(row["ConfirmedAt"]),
-                property = new
+                BookingId = b.BookingId,
+                StudentName = b.StudentName,
+                StatusId = b.StatusId,
+                StatusName = b.StatusName,
+                CreatedAt = b.CreatedAt,
+                ConfirmedAt = b.ConfirmedAt,
+                Property = new BookingListPropertyInfo
                 {
-                    propertyId = Convert.ToInt32(row["PropertyId"]),
-                    title = row["PropertyTitle"].ToString(),
-                    address = row["PropertyAddress"].ToString(),
-                    imageUrl = row["ImagePath"] == DBNull.Value ? null : $"{baseUrl}/{row["ImagePath"]}"
+                    PropertyId = b.PropertyId,
+                    Title = b.PropertyTitle,
+                    Price = null, // نفس السلوك الأصلي: السعر غير موجود إطلاقًا في سياق قائمة حجوزات المالك
+                    Address = b.PropertyAddress,
+                    ImageUrl = b.ImagePath == null ? null : $"{baseUrl}/{b.ImagePath}"
                 }
             }).ToList();
 
@@ -146,26 +149,23 @@ namespace Homunity_Web_Api.Controllers
 
         [HttpGet("property/{propertyId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public IActionResult GetBookingsByProperty(int propertyId)
+        public async Task<IActionResult> GetBookingsByProperty(int propertyId)
         {
-            if (propertyId <= 0)
-                return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (propertyId <= 0) return Problem(detail: "Invalid PropertyId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            var property = clsProperties.FindByID(propertyId);
-            if (property == null)
-                return Problem(detail: "Property not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
-            if (property.OwnerID != CurrentUserId && !IsAdmin) return Forbid();
+            var ownership = await _propertyRepo.GetOwnershipAsync(propertyId);
+            if (ownership == null) return Problem(detail: "Property not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            if (!await IsAuthorizedForResourceAsync(ownership.Value.OwnerId)) return Forbid();
 
-            DataTable bookings = clsBooking.GetBookingsByPropertyID(propertyId);
-            if (bookings.Rows.Count == 0)
-                return Ok(new { message = "No bookings found", bookings = new List<object>() });
+            var bookings = await _bookingService.GetByPropertyIdAsync(propertyId);
+            if (bookings.Count == 0) return Ok(new { message = "No bookings found", bookings = new List<BookingByPropertyItemResponse>() });
 
-            var result = bookings.AsEnumerable().Select(row => new
+            var result = bookings.Select(b => new BookingByPropertyItemResponse
             {
-                bookingId = Convert.ToInt32(row["BookingId"]),
-                studentName = row["StudentName"].ToString(),
-                checkInDate = row["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(row["CreatedAt"]).ToString("yyyy-MM-dd") : null,
-                statusName = row["StatusName"].ToString()
+                BookingId = b.BookingId,
+                StudentName = b.StudentName,
+                CheckInDate = b.CreatedAt.ToString("yyyy-MM-dd"),
+                StatusName = b.StatusName
             }).ToList();
 
             return Ok(new { message = "Bookings retrieved successfully", count = result.Count, bookings = result });
@@ -173,50 +173,52 @@ namespace Homunity_Web_Api.Controllers
 
         [HttpPut("{id}/confirm")]
         [Authorize(Roles = "Owner,Admin")]
-        public IActionResult ConfirmBooking(int id, int OwnerId)
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(BookingConfirmedResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ConfirmBooking(int id, int OwnerId)
         {
-            if (id <= 0)
-                return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (OwnerId <= 0)
-                return Problem(detail: "Invalid OwnerId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-            if (OwnerId != CurrentUserId && !IsAdmin) return Forbid();
+            if (id <= 0) return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (OwnerId <= 0) return Problem(detail: "Invalid OwnerId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (!await IsAuthorizedForResourceAsync(OwnerId)) return Forbid();
 
-            clsBooking booking = clsBooking.Find(id);
-            if (booking == null)
-                return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            var result = await _bookingService.ConfirmAsync(id, OwnerId);
 
-            if (booking.Confirm(OwnerId))
+            if (result.NotFoundFlag) return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            if (!result.Success) return Problem(detail: "Error confirming booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
+
+            return Ok(new BookingConfirmedResponse
             {
-                return Ok(new { bookingId = booking.BookingId, statusId = booking.StatusId, confirmedAt = booking.ConfirmedAt, message = "Booking confirmed successfully." });
-            }
-
-            return Problem(detail: "Error confirming booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
+                BookingId = result.BookingId,
+                StatusId = result.StatusId,
+                ConfirmedAt = result.ConfirmedAt,
+                Message = "Booking confirmed successfully."
+            });
         }
 
         [HttpPut("{id}/cancel")]
-        public IActionResult CancelBooking(int id)
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(BookingCancelledResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CancelBooking(int id)
         {
-            if (id <= 0)
-                return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
+            if (id <= 0) return Problem(detail: "Invalid BookingId.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
 
-            clsBooking booking = clsBooking.Find(id);
-            if (booking == null)
-                return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            var booking = await _bookingService.GetByIdAsync(id);
+            if (booking == null) return Problem(detail: $"Booking {id} not found.", statusCode: StatusCodes.Status404NotFound, title: "Not Found");
+            if (!await IsAuthorizedForResourceAsync(booking.StudentId)) return Forbid();
 
-            if (booking.StudentId != CurrentUserId && !IsAdmin) return Forbid();
+            var result = await _bookingService.CancelAsync(id);
+            if (!result.Success) return Problem(detail: "Cannot cancel a confirmed or already cancelled booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
 
-            if (booking.Cancel())
+            return Ok(new BookingCancelledResponse
             {
-                return Ok(new { bookingId = booking.BookingId, statusId = booking.StatusId, message = "Booking cancelled successfully" });
-            }
-
-            return Problem(detail: "Cannot cancel a confirmed or already cancelled booking.", statusCode: StatusCodes.Status500InternalServerError, title: "Server Error");
+                BookingId = result.BookingId,
+                StatusId = result.StatusId,
+                Message = "Booking cancelled successfully"
+            });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteBooking(int id)
-        {
-            return Problem(detail: "Use PUT /api/Booking/{id}/cancel instead.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
-        }
+        public IActionResult DeleteBooking(int id) =>
+            Problem(detail: "Use PUT /api/Booking/{id}/cancel instead.", statusCode: StatusCodes.Status400BadRequest, title: "Bad Request");
     }
 }
