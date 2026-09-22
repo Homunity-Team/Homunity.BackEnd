@@ -1,6 +1,5 @@
 using Homunity_Buisness_Logic;
 using Homunity_Shared_DTOs.Properties;
-using Homunity_Web_Api.Properties;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

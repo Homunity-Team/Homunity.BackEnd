@@ -2,7 +2,6 @@
 using Homunity_Shared_DTOs;
 using Homunity_Shared_DTOs.Properties;
 using Homunity_Web_Api.Contracts;
-using Homunity_Web_Api.Properties;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;

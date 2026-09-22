@@ -1,6 +1,5 @@
 using Homunity_Buisness_Logic;
 using Homunity_Shared_DTOs.Properties;
-using Homunity_Web_Api.Properties;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +13,8 @@ namespace Homunity_Web_Api.Controllers
         private readonly IPropertyService _propertyService;
         public PropertyImagesController(IPropertyService propertyService) => _propertyService = propertyService;
 
+        // Keep legacy route name for frontend compatibility
+        [HttpGet("GetByPropertyId", Name = "GetImagesByPropertyId")]
         [HttpGet("GetImagesByProperty", Name = "GetImagesByProperty")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetImagesByProperty(int propertyId)
@@ -31,7 +32,13 @@ namespace Homunity_Web_Api.Controllers
                 CreatedAt = img.CreatedAt
             }).ToList();
 
-            return Ok(result);
+            // Stable response shape: always 200 with count (empty list OK)
+            return Ok(new
+            {
+                propertyId,
+                count = result.Count,
+                images = result
+            });
         }
 
         [HttpGet("GetImageById", Name = "GetImageById")]

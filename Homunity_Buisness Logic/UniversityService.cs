@@ -1,7 +1,6 @@
 ﻿using Homunity_Data_Access.Entities;
 using Homunity_Data_Access.Repositories;
 using Homunity_Shared_DTOs.Properties;
-using Homunity_Web_Api.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;

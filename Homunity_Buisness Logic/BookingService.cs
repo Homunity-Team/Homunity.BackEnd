@@ -12,9 +12,7 @@ namespace Homunity_Buisness_Logic
         private const int STATUS_BOOKED = 3;
         private const int STATUS_CANCELLED = 4;
         private const int STATUS_CONFIRMED = 5;
-        private const int PROPERTY_STATUS_APPROVED = 2;
-
-        private readonly IBookingRepository _repo;
+private readonly IBookingRepository _repo;
         public BookingService(IBookingRepository repo) => _repo = repo;
 
         public async Task<BookingCreateResult> CreateAsync(int propertyId, int studentId)

@@ -147,13 +147,11 @@ namespace Homunity_Buisness_Logic
             var booking = await _repo.GetBookingForPaymentAsync(bookingId);
             if (booking == null) return null;
 
-            // Student who owns the booking, or owner/admin of the property
-            bool allowed = booking.StudentId == actingUserId
-                           || (isOwnerOrAdmin && booking.OwnerId == actingUserId)
-                           || isOwnerOrAdmin && actingUserId > 0 && booking.OwnerId == actingUserId;
-
-            // Simpler rule: student of booking OR property owner
-            allowed = booking.StudentId == actingUserId || booking.OwnerId == actingUserId;
+            // Student on the booking, property owner, or any Admin
+            bool allowed =
+                booking.StudentId == actingUserId
+                || booking.OwnerId == actingUserId
+                || isOwnerOrAdmin;
             if (!allowed)
             {
                 _logger.LogWarning("GetStatus forbidden for user {UserId} on booking {BookingId}.", actingUserId, bookingId);

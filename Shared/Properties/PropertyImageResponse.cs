@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Homunity_Web_Api.Properties
+namespace Homunity_Shared_DTOs.Properties
 {
     public class PropertyImageResponse
     {

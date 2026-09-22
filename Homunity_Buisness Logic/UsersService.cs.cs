@@ -56,19 +56,6 @@ namespace Homunity_Buisness_Logic
             return (true, false, MapToResponse(entity));
         }
 
-        public async Task<UserResponse> LoginAsync(string phone, string password)
-        {
-            var user = await _repo.GetByPhoneAsync(phone);
-
-            if (user == null || !user.IsActive)
-                return null;
-
-            if (PasswordHasher.Hash(password) != user.PasswordHash)
-                return null;
-
-            return MapToResponse(user);
-        }
-
         public async Task<UserResponse> GetProfileAsync(int userId)
         {
             var user = await _repo.GetByIdAsync(userId);

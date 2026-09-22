@@ -25,7 +25,7 @@ namespace Homunity_Data_Access.Repositories
 
         public async Task<int> AddAsync(int propertyId, int studentId, int statusId)
         {
-            var booking = new BookingEntity { PropertyId = propertyId, StudentId = studentId, StatusId = statusId, CreatedAt = DateTime.Now };
+            var booking = new BookingEntity { PropertyId = propertyId, StudentId = studentId, StatusId = statusId, CreatedAt = DateTime.UtcNow };
             _db.Bookings.Add(booking);
             await _db.SaveChangesAsync();
             return booking.BookingId;
