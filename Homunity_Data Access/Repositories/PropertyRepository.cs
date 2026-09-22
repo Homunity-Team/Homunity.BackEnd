@@ -278,6 +278,10 @@ namespace Homunity_Data_Access.Repositories
                 await _db.PropertyImages.Where(i => i.PropertyId == propertyId).ExecuteDeleteAsync();
                 await _db.PropertyVideos.Where(v => v.PropertyId == propertyId).ExecuteDeleteAsync();
                 await _db.PropertyServices.Where(ps => ps.PropertyId == propertyId).ExecuteDeleteAsync();
+
+                // Payments reference Booking (Restrict) and Property — must delete before Bookings/Property
+                await _db.Payments.Where(pay => pay.PropertyId == propertyId).ExecuteDeleteAsync();
+
                 await _db.Bookings.Where(b => b.PropertyId == propertyId).ExecuteDeleteAsync();
 
                 // AdminActions has no EF entity (table confirmed write-dead across the whole solution —
