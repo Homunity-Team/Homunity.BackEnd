@@ -626,8 +626,7 @@ Requests rejected by the limiter receive HTTP `429 Too Many Requests`.
 
 The backend is deployed and available through the public API host.
 
-- **API:** https://homunityapiv1.runasp.net/
-- **Swagger:** https://homunityapiv1.runasp.net/swagger/index.html
+ - **Swagger:** https://homunityapiv1.runasp.net/swagger/index.html
 - **Database:** Microsoft SQL Server
 
 Production secrets and connection strings are supplied through environment configuration rather than committed to the repository.
