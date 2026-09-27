@@ -1,0 +1,1147 @@
+{
+  "info": {
+    "_postman_id": "9d3c4c72-7a0f-4d86-a3f2-1a6d8b0c4e21",
+    "name": "Homunity Backend API",
+    "description": "Postman collection prepared from the current Homunity ASP.NET Core Web API source. Uses the implemented routes and keeps credentials/secrets out of the collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://homunityapiv1.runasp.net"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "studentId",
+      "value": "1"
+    },
+    {
+      "key": "ownerId",
+      "value": "1"
+    },
+    {
+      "key": "propertyId",
+      "value": "1"
+    },
+    {
+      "key": "bookingId",
+      "value": "1"
+    },
+    {
+      "key": "universityId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Owner\",\n  \"phone\": \"01000000001\",\n  \"password\": \"TestPass123\",\n  \"roleId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/Register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "Register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01000000001\",\n  \"password\": \"TestPass123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/Auth/Login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Auth",
+                "Login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Properties",
+      "item": [
+        {
+          "name": "Get Properties (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Properties/GetAllV2?pageNumber=1&pageSize=10&sortBy=Price&sortDescending=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Properties",
+                "GetAllV2"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "Price"
+                },
+                {
+                  "key": "sortDescending",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Property By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Properties/GetByIDV2?id={{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Properties",
+                "GetByIDV2"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{propertyId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Properties By Owner",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Properties/GetByOwnerV2?ownerId={{ownerId}}}&pageNumber=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Properties",
+                "GetByOwnerV2"
+              ],
+              "query": [
+                {
+                  "key": "ownerId",
+                  "value": "{{ownerId}}"
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search By University",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Properties/SearchByUniversity?universityId={{universityId}}}&maxPrice=5000&maxDistanceKm=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Properties",
+                "SearchByUniversity"
+              ],
+              "query": [
+                {
+                  "key": "universityId",
+                  "value": "{{universityId}}"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "5000"
+                },
+                {
+                  "key": "maxDistanceKm",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search By University Nearby",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Properties/SearchByUniversityNearby?universityId={{universityId}}}&maxDistanceKm=5&maxPrice=5000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Properties",
+                "SearchByUniversityNearby"
+              ],
+              "query": [
+                {
+                  "key": "universityId",
+                  "value": "{{universityId}}"
+                },
+                {
+                  "key": "maxDistanceKm",
+                  "value": "5"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "5000"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Full Property",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "type": "text",
+                  "value": "Sample Student Apartment"
+                },
+                {
+                  "key": "Description",
+                  "type": "text",
+                  "value": "Sample property created from Postman."
+                },
+                {
+                  "key": "Price",
+                  "type": "text",
+                  "value": "3000"
+                },
+                {
+                  "key": "Rooms",
+                  "type": "text",
+                  "value": "2"
+                },
+                {
+                  "key": "PropertyType",
+                  "type": "text",
+                  "value": "Apartment"
+                },
+                {
+                  "key": "Latitude",
+                  "type": "text",
+                  "value": "30.0444"
+                },
+                {
+                  "key": "Longitude",
+                  "type": "text",
+                  "value": "31.2357"
+                },
+                {
+                  "key": "Address",
+                  "type": "text",
+                  "value": "Sample Address"
+                },
+                {
+                  "key": "UniversityId",
+                  "type": "text",
+                  "value": "{{universityId}}"
+                },
+                {
+                  "key": "Services",
+                  "type": "text",
+                  "value": "1"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/Properties/CreateFullProperty",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Properties",
+                "CreateFullProperty"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Property",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Properties/DeleteProperty?id={{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Properties",
+                "DeleteProperty"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{propertyId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Booking",
+      "item": [
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Booking?PropertyId={{propertyId}}&StudentId={{studentId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Booking"
+              ],
+              "query": [
+                {
+                  "key": "PropertyId",
+                  "value": "{{propertyId}}"
+                },
+                {
+                  "key": "StudentId",
+                  "value": "{{studentId}}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Booking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Booking/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Booking",
+                "{{bookingId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Student Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Booking/student/{{studentId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Booking",
+                "student",
+                "{{studentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Owner Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Booking/owner/{{ownerId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Booking",
+                "owner",
+                "{{ownerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Property Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Booking/property/{{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Booking",
+                "property",
+                "{{propertyId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Confirm Booking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Booking/{{bookingId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Booking",
+                "{{bookingId}}",
+                "confirm"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Booking/{{bookingId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Booking",
+                "{{bookingId}}",
+                "cancel"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Payment",
+      "item": [
+        {
+          "name": "Create Payment Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payment/create-order/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payment",
+                "create-order",
+                "{{bookingId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Process Mock Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mockOrderId\": \"HMNT-1-1\",\n  \"cardNumber\": \"4111111111111111\",\n  \"cardExpiry\": \"12/30\",\n  \"cardCvv\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/Payment/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payment",
+                "process"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payment/status/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Payment",
+                "status",
+                "{{bookingId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Chat / Gemini",
+      "item": [
+        {
+          "name": "Send Chat Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": 1,\n  \"message\": \"Find me properties near my university.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/Chat/message",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Chat",
+                "message"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Chat History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Chat/history/{{studentId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Chat",
+                "history",
+                "{{studentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clear Chat History",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Chat/clear/{{studentId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Chat",
+                "clear",
+                "{{studentId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Admin",
+      "item": [
+        {
+          "name": "Approve Property",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/AdminActions/properties/{{propertyId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "AdminActions",
+                "properties",
+                "{{propertyId}}",
+                "approve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reject Property",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/AdminActions/properties/{{propertyId}}/reject?reason=Property%20information%20needs%20more%20details",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "AdminActions",
+                "properties",
+                "{{propertyId}}",
+                "reject"
+              ],
+              "query": [
+                {
+                  "key": "reason",
+                  "value": "Property information needs more details"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pending Properties",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/AdminActions/properties/pending?page=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "AdminActions",
+                "properties",
+                "pending"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rejected Properties",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/AdminActions/properties/rejected",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "AdminActions",
+                "properties",
+                "rejected"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/AdminActions/dashboard/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "AdminActions",
+                "dashboard",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Recent Actions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/AdminActions/dashboard/recent-actions?pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "AdminActions",
+                "dashboard",
+                "recent-actions"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Reference & Location",
+      "item": [
+        {
+          "name": "Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Roles/Get%20All%20Roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Roles",
+                "Get%20All%20Roles"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Services",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Services/GetAll",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Services",
+                "GetAll"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Universities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Universities/GetAll",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Universities",
+                "GetAll"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Location/cities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Location",
+                "cities"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Areas By City",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Location/areas?city=Cairo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Location",
+                "areas"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Cairo"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Users",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/Get%20Profile%20By%20ID?id={{studentId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "Get%20Profile%20By%20ID"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User Status (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/Update%20Status%20By%20ID?id={{studentId}}}&isActive=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "Update%20Status%20By%20ID"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete User (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Users/Delete%20User%20By%20ID?id={{studentId}}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "Users",
+                "Delete%20User%20By%20ID"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

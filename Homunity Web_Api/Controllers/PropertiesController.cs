@@ -678,29 +678,25 @@ namespace Homunity_Web_Api.Controllers
             return Ok(result);
         }
 
-        // ── SEARCH ── //
-
+        // ── SEARCH (by city / area — authenticated) ── //
+        /// <summary>
+        /// Search approved properties by city and/or area with optional maximum price.
+        /// MinPrice is not supported — use maxPrice only as the price ceiling.
+        /// Requires authentication (same as current API policy).
+        /// </summary>
         [HttpGet("Search", Name = "SearchProperties")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Search(
             string? city = null,
             string? area = null,
-            decimal? minPrice = null,
             decimal? maxPrice = null,
             int pageNumber = 1,
             int pageSize = 10,
             string? sortBy = null,
             bool sortDescending = false)
         {
-            if (minPrice < 0)
-            {
-                return Problem(
-                    detail: "MinPrice cannot be negative.",
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: "Bad Request");
-            }
-
-            if (maxPrice < 0)
+            if (maxPrice.HasValue && maxPrice < 0)
             {
                 return Problem(
                     detail: "MaxPrice cannot be negative.",
@@ -708,21 +704,15 @@ namespace Homunity_Web_Api.Controllers
                     title: "Bad Request");
             }
 
-            if (minPrice.HasValue &&
-                maxPrice.HasValue &&
-                minPrice > maxPrice)
-            {
-                return Problem(
-                    detail: "MinPrice cannot be greater than MaxPrice.",
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: "Bad Request");
-            }
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100;
 
             var query = new PropertyListQuery
             {
                 City = city,
                 Area = area,
-                MinPrice = minPrice,
+                MinPrice = null, // intentionally unsupported on this endpoint
                 MaxPrice = maxPrice,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
@@ -730,23 +720,28 @@ namespace Homunity_Web_Api.Controllers
                 SortDescending = sortDescending
             };
 
-            var baseUrl =
-                $"{Request.Scheme}://{Request.Host}";
-
-            var result =
-                await _propertyService.GetPropertiesPagedAsync(
-                    query,
-                    baseUrl);
-
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var result = await _propertyService.GetPropertiesPagedAsync(query, baseUrl);
             return Ok(result);
         }
 
-        // ── SEARCH BY UNIVERSITY ── //
-
-        [HttpGet("SearchByUniversity")]
+        // ── SEARCH BY UNIVERSITY (distance optional) ── //
+        /// <summary>
+        /// Search properties linked to a university. Distance (km) is calculated on the server (Haversine).
+        /// Results are ordered nearest-first. Optional maxDistanceKm filters to properties within that radius.
+        /// Optional maxPrice is a ceiling only (no minPrice).
+        /// Requires authentication.
+        /// </summary>
+        /// <param name="universityId">Target university id</param>
+        /// <param name="maxPrice">Optional maximum monthly price</param>
+        /// <param name="maxDistanceKm">Optional maximum distance in kilometers from the university</param>
+        [HttpGet("SearchByUniversity", Name = "SearchByUniversity")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> SearchByUniversity(
             int universityId,
-            decimal? maxPrice = null)
+            decimal? maxPrice = null,
+            double? maxDistanceKm = null)
         {
             if (universityId <= 0)
             {
@@ -756,7 +751,7 @@ namespace Homunity_Web_Api.Controllers
                     title: "Bad Request");
             }
 
-            if (maxPrice < 0)
+            if (maxPrice.HasValue && maxPrice < 0)
             {
                 return Problem(
                     detail: "MaxPrice cannot be negative.",
@@ -764,20 +759,34 @@ namespace Homunity_Web_Api.Controllers
                     title: "Bad Request");
             }
 
-            var results =
-                await _universityService.SearchByUniversityAsync(
-                    universityId,
-                    maxPrice);
+            if (maxDistanceKm.HasValue && maxDistanceKm <= 0)
+            {
+                return Problem(
+                    detail: "MaxDistanceKm must be greater than 0 when provided.",
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "Bad Request");
+            }
+
+            var results = await _universityService.SearchByUniversityAsync(
+                universityId,
+                maxPrice,
+                maxDistanceKm);
 
             return _BuildUniversityResponse(results);
         }
 
-        // ── SEARCH BY UNIVERSITY NEARBY ── //
-
-        [HttpGet("SearchByUniversityNearby")]
+        // ── SEARCH BY UNIVERSITY NEARBY (alias: requires maxDistanceKm) ── //
+        /// <summary>
+        /// Same as SearchByUniversity but requires maxDistanceKm (radius filter).
+        /// Prefer SearchByUniversity with optional maxDistanceKm for new clients.
+        /// Requires authentication.
+        /// </summary>
+        [HttpGet("SearchByUniversityNearby", Name = "SearchByUniversityNearby")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> SearchByUniversityNearby(
             int universityId,
-            double maxDistance,
+            double maxDistanceKm,
             decimal? maxPrice = null)
         {
             if (universityId <= 0)
@@ -788,15 +797,15 @@ namespace Homunity_Web_Api.Controllers
                     title: "Bad Request");
             }
 
-            if (maxDistance <= 0)
+            if (maxDistanceKm <= 0)
             {
                 return Problem(
-                    detail: "MaxDistance must be greater than 0.",
+                    detail: "MaxDistanceKm must be greater than 0.",
                     statusCode: StatusCodes.Status400BadRequest,
                     title: "Bad Request");
             }
 
-            if (maxPrice < 0)
+            if (maxPrice.HasValue && maxPrice < 0)
             {
                 return Problem(
                     detail: "MaxPrice cannot be negative.",
@@ -804,11 +813,10 @@ namespace Homunity_Web_Api.Controllers
                     title: "Bad Request");
             }
 
-            var results =
-                await _universityService.SearchByUniversityAsync(
-                    universityId,
-                    maxPrice,
-                    maxDistance);
+            var results = await _universityService.SearchByUniversityAsync(
+                universityId,
+                maxPrice,
+                maxDistanceKm);
 
             return _BuildUniversityResponse(results);
         }
