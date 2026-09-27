@@ -2,7 +2,7 @@
 
 [🔗 Postman Collection](Homunity_Postman_Collection.json)  
 [🔗 Live Swagger](https://homunityapiv1.runasp.net/swagger/index.html)  
-[🔗 Live API](https://homunityapiv1.runasp.net/)
+
 
 ASP.NET Core Web API for a student-housing and property-rental platform that connects students with property owners and supports property management, search, booking, administration, payments simulation, and AI-assisted chat.
 
@@ -679,8 +679,6 @@ The primary interactive API documentation is Swagger/OpenAPI.
 
 - **Postman Collection:** [Homunity_Postman_Collection.json](Homunity_Postman_Collection.json)
 - **Live Swagger:** [https://homunityapiv1.runasp.net/swagger/index.html](https://homunityapiv1.runasp.net/swagger/index.html)
-- **Live API:** [https://homunityapiv1.runasp.net/](https://homunityapiv1.runasp.net/)
-
 ## License
 
 No license file is currently specified in the source snapshot. Add a license explicitly if the repository will be distributed under open-source terms.
